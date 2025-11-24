@@ -154,47 +154,58 @@ pipeline {
          * OWASP ZAP Security Scan
          *********************************************/
         stage('OWASP ZAP Scan') {
-        steps {
-            script {
-                sh '''
-                set +e
-                
-                # Create writable directory
-                mkdir -p zap-reports
-                chmod 777 zap-reports
-                
-                # Run ZAP scan
-                docker run --rm \
-                    --network=spring-petclinic_devops-net \
-                    --user root \
-                    -v $(pwd)/zap-reports:/zap/wrk:rw \
-                    ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
-                    -t http://petclinic:8080 \
-                    -g gen.conf \
-                    -r zap_report.html \
-                    -I 2>&1 | tee zap_output.log || true
-                
-                # Debug: Check what files were created
-                echo "=== Checking zap-reports directory ==="
-                ls -la zap-reports/ || echo "Directory not found"
-                
-                # Check for any report files and copy them
-                if [ -f zap-reports/zap_report.html ]; then
-                    cp zap-reports/zap_report.html .
-                    echo "✓ ZAP HTML report found"
-                elif [ -f zap-reports/zap_report.xml ]; then
-                    cp zap-reports/zap_report.xml .
-                    echo "✓ ZAP XML report found"
-                else
-                    echo "⚠️ No ZAP reports found, creating placeholder"
-                    echo "<html><body><h1>ZAP Scan Complete</h1><p>Check console for results</p></body></html>" > zap_report.html
-                fi
-                
-                rm -rf zap-reports
-                '''
+            steps {
+                script {
+                    sh '''
+                    set +e
+                    
+                    echo "Starting ZAP container..."
+                    docker run -dt --name zap-scanner \
+                        --network=spring-petclinic_devops-net \
+                        ghcr.io/zaproxy/zaproxy:stable /bin/bash
+                    
+                    echo "Creating work directory..."
+                    docker exec zap-scanner mkdir -p /zap/wrk
+                    
+                    echo "Running ZAP baseline scan..."
+                    docker exec zap-scanner zap-baseline.py \
+                        -t http://petclinic:8080 \
+                        -r /zap/wrk/report.html \
+                        -I || ZAP_EXIT=$?
+                    
+                    echo "ZAP scan completed with exit code: ${ZAP_EXIT:-0}"
+                    
+                    if docker exec zap-scanner test -f /zap/wrk/report.html; then
+                        docker cp zap-scanner:/zap/wrk/report.html ./zap_report.html
+                        ls -lh zap_report.html
+                        echo "✓ ZAP HTML report copied successfully"
+                    else
+                        echo "⚠️ Report not found, creating placeholder"
+                        cat > zap_report.html <<EOF
+        <!DOCTYPE html>
+        <html>
+        <head><title>OWASP ZAP Scan Report</title></head>
+        <body>
+        <h1>OWASP ZAP Security Scan</h1>
+        <h2>Scan Summary</h2>
+        <p>Scan completed. Check console output for detailed results.</p>
+        <p><strong>Exit Code:</strong> ${ZAP_EXIT:-0}</p>
+        </body>
+        </html>
+        EOF
+                    fi
+                    '''
+                }
+            }
+            post {
+                always {
+                    sh '''
+                        docker stop zap-scanner 2>/dev/null || true
+                        docker rm zap-scanner 2>/dev/null || true
+                    '''
+                }
             }
         }
-    }
 
 
         /*********************************************
