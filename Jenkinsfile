@@ -158,23 +158,25 @@ pipeline {
                 script {
                     sh '''
                     set +e
-                    
+
                     echo "Starting ZAP container..."
                     docker run -dt --name zap-scanner \
                         --network=spring-petclinic_devops-net \
                         ghcr.io/zaproxy/zaproxy:stable /bin/bash
-                    
+
                     echo "Creating work directory..."
                     docker exec zap-scanner mkdir -p /zap/wrk
-                    
+
                     echo "Running ZAP baseline scan..."
+                    ZAP_EXIT=0
                     docker exec zap-scanner zap-baseline.py \
+                        -w /zap/wrk \
                         -t http://petclinic:8080 \
-                        -r /zap/wrk/report.html \
+                        -r report.html \
                         -I || ZAP_EXIT=$?
-                    
+
                     echo "ZAP scan completed with exit code: ${ZAP_EXIT:-0}"
-                    
+
                     if docker exec zap-scanner test -f /zap/wrk/report.html; then
                         docker cp zap-scanner:/zap/wrk/report.html ./zap_report.html
                         ls -lh zap_report.html
@@ -182,17 +184,17 @@ pipeline {
                     else
                         echo "⚠️ Report not found, creating placeholder"
                         cat > zap_report.html <<EOF
-        <!DOCTYPE html>
-        <html>
-        <head><title>OWASP ZAP Scan Report</title></head>
-        <body>
-        <h1>OWASP ZAP Security Scan</h1>
-        <h2>Scan Summary</h2>
-        <p>Scan completed. Check console output for detailed results.</p>
-        <p><strong>Exit Code:</strong> ${ZAP_EXIT:-0}</p>
-        </body>
-        </html>
-        EOF
+<!DOCTYPE html>
+<html>
+<head><title>OWASP ZAP Scan Report</title></head>
+<body>
+<h1>OWASP ZAP Security Scan</h1>
+<h2>Scan Summary</h2>
+<p>Scan completed. Check console output for detailed results.</p>
+<p><strong>Exit Code:</strong> ${ZAP_EXIT:-0}</p>
+</body>
+</html>
+EOF
                     fi
                     '''
                 }
