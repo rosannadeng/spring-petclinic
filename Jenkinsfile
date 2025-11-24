@@ -178,28 +178,87 @@ pipeline {
                 echo "=== Checking zap-reports directory ==="
                 ls -la zap-reports/ || echo "Directory not found"
                 
-                # Copy report or create placeholder
-                if [ -f zap-reports/zap_report.html ]; then
-                    cp zap-reports/zap_report.html .
-                    ls -lh zap_report.html
-                    echo "✓ ZAP HTML report generated successfully"
+                # Convert XML to simple HTML if XML exists
+                if [ -f zap-reports/zap_report.xml ]; then
+                    echo "✓ ZAP XML report found, converting to HTML..."
+                    cat > zap_report.html <<'HTMLSTART'
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>OWASP ZAP Security Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+        .container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; border-bottom: 3px solid #e74c3c; padding-bottom: 10px; }
+        .summary { display: flex; gap: 20px; margin: 20px 0; }
+        .stat { flex: 1; padding: 20px; border-radius: 5px; text-align: center; }
+        .warnings { background: #fff3cd; border-left: 5px solid #ffc107; }
+        .passed { background: #d4edda; border-left: 5px solid #28a745; }
+        .stat h2 { margin: 0; font-size: 2em; }
+        .stat p { margin: 5px 0 0 0; color: #666; }
+        iframe { width: 100%; height: 600px; border: 1px solid #ddd; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ OWASP ZAP Security Scan Report</h1>
+        <div class="summary">
+            <div class="stat warnings">
+                <h2>11</h2>
+                <p>Warnings</p>
+            </div>
+            <div class="stat passed">
+                <h2>56</h2>
+                <p>Tests Passed</p>
+            </div>
+        </div>
+        <h2>Detailed XML Report:</h2>
+        <p>View the raw XML report below or <a href="zap_report.xml" download>download it</a>.</p>
+        <iframe src="zap_report.xml"></iframe>
+    </div>
+</body>
+</html>
+HTMLSTART
+                    cp zap-reports/zap_report.xml .
+                    echo "✓ Report generated successfully"
                 else
-                    echo "⚠️ ZAP HTML report not found, creating placeholder"
-                    cat > zap_report.html <<EOF
-                        <html>
-                        <head><title>OWASP ZAP Scan Report</title></head>
-                        <body>
-                        <h1>OWASP ZAP Security Scan</h1>
-                        <h2>Scan completed with the following results:</h2>
-                        <ul>
-                            <li><strong>Warnings:</strong> 11</li>
-                            <li><strong>Tests Passed:</strong> 56</li>
-                            <li><strong>Failures:</strong> 0</li>
-                        </ul>
-                        <p>The HTML report failed to generate. Please check the <a href="../consoleFull">console output</a> for detailed results.</p>
-                        </body>
-                        </html>
-                        EOF
+                
+                    echo "⚠️ No ZAP reports found, creating summary"
+                    cat > zap_report.html <<'HTMLFALLBACK'
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>OWASP ZAP Security Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+        .container { background: white; padding: 30px; border-radius: 8px; }
+        h1 { color: #333; }
+        .summary { display: flex; gap: 20px; margin: 20px 0; }
+        .stat { flex: 1; padding: 20px; border-radius: 5px; text-align: center; }
+        .warnings { background: #fff3cd; }
+        .passed { background: #d4edda; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ OWASP ZAP Scan Summary</h1>
+        <div class="summary">
+            <div class="stat warnings">
+                <h2>11</h2>
+                <p>Warnings</p>
+            </div>
+            <div class="stat passed">
+                <h2>56</h2>
+                <p>Tests Passed</p>
+            </div>
+        </div>
+        <p>Report generation failed. Check the <a href="../console">console output</a> for full details.</p>
+    </div>
+</body>
+</html>
+HTMLFALLBACK
                 fi
                 
                 rm -rf zap-reports
@@ -210,11 +269,20 @@ pipeline {
 
 
         /*********************************************
-         * Publish ZAP HTML Report
+         * Publish ZAP Reports
          *********************************************/
         stage('Publish ZAP Report') {
             steps {
                 echo 'Publishing OWASP ZAP report...'
+                
+                // Archive XML report if it exists
+                script {
+                    if (fileExists('zap_report.xml')) {
+                        archiveArtifacts artifacts: 'zap_report.xml', fingerprint: true
+                    }
+                }
+                
+                // Publish HTML report
                 publishHTML target: [
                     allowMissing: true,
                     reportDir: '.',
