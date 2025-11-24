@@ -161,18 +161,35 @@ pipeline {
                 
                 ZAP_IMAGE="ghcr.io/zaproxy/zaproxy:stable"
                 
-                rm -f zap_report.html zap_output.txt
+                # Create writable directory for ZAP output
+                mkdir -p zap-reports
+                chmod 777 zap-reports
+                
+                rm -f zap-reports/zap_report.html
                 
                 echo "Running ZAP baseline scan against http://petclinic:8080..."
                 
-                # Run ZAP and capture output to text file (no volume mount needed)
+                # Run ZAP scan with volume mount to writable directory
                 docker run --rm \
                     --network=spring-petclinic_devops-net \
+                    -v $(pwd)/zap-reports:/zap/wrk:rw \
                     "${ZAP_IMAGE}" zap-baseline.py \
                     -t http://petclinic:8080 \
-                    -I 2>&1 | tee zap_output.txt || ZAP_EXIT=$?
+                    -r zap_report.html \
+                    -I || ZAP_EXIT=$?
                 
                 echo "ZAP scan completed with exit code: ${ZAP_EXIT:-0}"
+                
+                # Check if ZAP generated the real report
+                if [ -f zap-reports/zap_report.html ]; then
+                    cp zap-reports/zap_report.html .
+                    ls -lh zap_report.html
+                    echo "✓ ZAP native HTML report generated successfully!"
+                    exit 0
+                fi
+                
+                # Fallback: generate custom HTML if ZAP failed
+                echo "X ZAP native report not found, generating custom report..."
                 
                 # Generate HTML report from captured output
                 cat > zap_report.html <<'HTMLEOF'
@@ -419,8 +436,15 @@ pipeline {
 HTMLEOF2
                 
                 ls -lh zap_report.html
-                echo "✓ ZAP report HTML generated successfully"
+                echo "✓ Custom ZAP report HTML generated successfully"
                 '''
+            }
+            post {
+                always {
+                    // Clean up ZAP working directory
+                    sh 'rm -rf zap-reports'
+                }
+            }
             }
         }
 
