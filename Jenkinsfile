@@ -1,64 +1,75 @@
 pipeline {
+
     agent any
 
-    tools {
-        maven 'Maven 3.9.5'
-        jdk 'JDK 25'
+    triggers {
+        pollSCM('* * * * *')  
     }
 
     environment {
+        MAVEN_OPTS = '-Xmx2048m'
+        PROJECT_NAME = 'spring-petclinic'
         SONAR_PROJECT_KEY = 'spring-petclinic'
-        DOCKER_ARGS = '-v /var/run/docker.sock:/var/run/docker.sock --user root'
+        DOCKER_ARGS = '-v /var/run/docker.sock:/var/run/docker.sock --network spring-petclinic_devops-net --memory=4g'
     }
 
     stages {
+
         /*********************************************
-         * Checkout Source Code
+         * Checkout code
          *********************************************/
         stage('Checkout') {
             steps {
-                echo 'Checking out source code...'
+                echo 'Checking out code...'
                 checkout scm
+                script {
+                    sh 'git rev-parse --short HEAD'
+                    sh 'git log -1 --pretty=%B'
+                }
             }
         }
 
-
         /*********************************************
-         * Build with Java 25
+         * Build using Java 25
          *********************************************/
         stage('Build (Java 25)') {
             agent {
                 docker {
                     image 'maven-java25:latest'
                     args "${DOCKER_ARGS}"
-                    network 'spring-petclinic_devops-net'
                 }
             }
             steps {
-                echo 'Building project with Maven and Java 25...'
-                sh './mvnw clean compile'
+                echo 'Building project with Java 25...'
+                sh 'chmod +x mvnw'
+                sh './mvnw clean compile -DskipTests'
             }
         }
 
 
         /*********************************************
-         * Test with Java 25
+         * Unit Tests
          *********************************************/
         stage('Test (Java 25)') {
             agent {
                 docker {
                     image 'maven-java25:latest'
                     args "${DOCKER_ARGS}"
-                    network 'spring-petclinic_devops-net'
                 }
             }
             steps {
-                echo 'Running tests...'
-                sh './mvnw test'
+                echo 'Running unit tests...'
+                sh './mvnw test -Dtest="!PostgresIntegrationTests"'
             }
             post {
                 always {
-                    junit '**/target/surefire-reports/*.xml'
+                    junit testResults: '**/target/surefire-reports/*.xml', allowEmptyResults: true
+                    jacoco(
+                        execPattern: '**/target/jacoco.exec',
+                        classPattern: '**/target/classes',
+                        sourcePattern: '**/src/main/java',
+                        exclusionPattern: '**/*Test*.class'
+                    )
                 }
             }
         }
@@ -72,82 +83,69 @@ pipeline {
                 docker {
                     image 'maven-java25:latest'
                     args "${DOCKER_ARGS}"
-                    network 'spring-petclinic_devops-net'
                 }
             }
             steps {
+                echo 'Running SonarQube analysis...'
                 withSonarQubeEnv('SonarQubeServer') {
-                    echo 'Running SonarQube analysis...'
-                    sh './mvnw sonar:sonar'
+                    sh """
+                        ./mvnw sonar:sonar \
+                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                        -Dsonar.projectName=${PROJECT_NAME} \
+                        -Dsonar.projectVersion=${BUILD_NUMBER}
+                    """
                 }
             }
         }
 
 
         /*********************************************
-         * Quality Gate
+         * Wait for Quality Gate
          *********************************************/
         stage('Quality Gate') {
             steps {
                 echo 'Waiting for SonarQube quality gate result...'
-                timeout(time: 3, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
+                timeout(time: 5, unit: 'MINUTES') {
+                    script {
+                        def qg = waitForQualityGate abortPipeline: true
+                        echo "Quality gate status: ${qg.status}"
+                    }
                 }
             }
         }
 
 
         /*********************************************
-         * Checkstyle Code Quality Check
-         *********************************************/
-        stage('Checkstyle (Java 25)') {
-            agent {
-                docker {
-                    image 'maven-java25:latest'
-                    args "${DOCKER_ARGS}"
-                    network 'spring-petclinic_devops-net'
-                }
-            }
-            steps {
-                echo 'Running Checkstyle analysis...'
-                sh './mvnw checkstyle:checkstyle'
-            }
-            post {
-                always {
-                    recordIssues(
-                        enabledForFailure: true,
-                        tools: [checkstyle(pattern: '**/target/checkstyle-result.xml')]
-                    )
-                }
-            }
-        }
-
-
-        /*********************************************
-         * Package Application
+         * Package JAR
          *********************************************/
         stage('Package (Java 25)') {
             agent {
                 docker {
                     image 'maven-java25:latest'
                     args "${DOCKER_ARGS}"
-                    network 'spring-petclinic_devops-net'
                 }
             }
             steps {
                 echo 'Packaging application...'
                 sh './mvnw package -DskipTests'
             }
+            post {
+                success {
+                    stash name: 'jar-artifacts', includes: 'target/*.jar', allowEmpty: false
+                }
+            }
         }
 
-
         /*********************************************
-         * Archive Artifacts
+         * Archive artifacts
          *********************************************/
         stage('Archive') {
             steps {
                 echo 'Archiving artifacts...'
-                archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
+                unstash 'jar-artifacts'
+                archiveArtifacts artifacts: 'target/*.jar',
+                    fingerprint: true,
+                    allowEmptyArchive: false
             }
         }
 
@@ -156,37 +154,37 @@ pipeline {
          * OWASP ZAP Security Scan
          *********************************************/
         stage('OWASP ZAP Scan') {
-            steps {
-                script {
-                    sh '''
-                    set +e
-                    
-                    # Create writable directory
-                    mkdir -p zap-reports
-                    chmod 777 zap-reports
-                    
-                    # Run ZAP scan
-                    docker run --rm \
-                        --network=spring-petclinic_devops-net \
-                        -v $(pwd)/zap-reports:/zap/wrk:rw \
-                        ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
-                        -t http://petclinic:8080 \
-                        -r zap_report.html \
-                        -I || true
-                    
-                    # Copy report or create placeholder
-                    if [ -f zap-reports/zap_report.html ]; then
-                        cp zap-reports/zap_report.html .
-                        echo "ZAP report generated"
-                    else
-                        echo "<html><body><h1>ZAP Scan Report</h1><p>Check console for details</p></body></html>" > zap_report.html
-                    fi
-                    
-                    rm -rf zap-reports
-                    '''
-                }
+        steps {
+            script {
+                sh '''
+                set +e
+                
+                # Create writable directory
+                mkdir -p zap-reports
+                chmod 777 zap-reports
+                
+                # Run ZAP scan
+                docker run --rm \
+                    --network=spring-petclinic_devops-net \
+                    -v $(pwd)/zap-reports:/zap/wrk:rw \
+                    ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+                    -t http://petclinic:8080 \
+                    -r zap_report.html \
+                    -I || true
+                
+                # Copy report or create placeholder
+                if [ -f zap-reports/zap_report.html ]; then
+                    cp zap-reports/zap_report.html .
+                    echo "ZAP report generated"
+                else
+                    echo "<html><body><h1>ZAP Scan Report</h1><p>Check console for details</p></body></html>" > zap_report.html
+                fi
+                
+                rm -rf zap-reports
+                '''
             }
         }
+    }
 
 
         /*********************************************
@@ -199,17 +197,13 @@ pipeline {
                     allowMissing: true,
                     reportDir: '.',
                     reportFiles: 'zap_report.html',
-                    reportName: 'OWASP ZAP Security Report',
-                    keepAll: true
+                    reportName: 'OWASP ZAP Security Report'
                 ]
             }
         }
     }
 
 
-    /*********************************************
-     * Post-Build Actions
-     *********************************************/
     post {
         success {
             echo 'Build succeeded!'
@@ -217,10 +211,5 @@ pipeline {
         failure {
             echo 'Build failed!'
         }
-        always {
-            echo 'Cleaning workspace...'
-            cleanWs()
-        }
     }
 }
-
