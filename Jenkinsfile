@@ -233,6 +233,22 @@ EOF
                 ]
             }
         }
+
+        /*********************************************
+         * Deploy to Production using Ansible
+         *********************************************/
+        stage('Deploy to Production') {
+            steps {
+                echo 'Deploying to production server with Ansible...'
+                unstash 'jar-artifacts'
+                
+                script {
+                    sh '''
+                        ansible-playbook -i ansible/inventory/hosts ansible/deploy.yml
+                    '''
+                }
+            }
+        }
     }
 
 
