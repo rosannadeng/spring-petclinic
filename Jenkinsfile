@@ -64,12 +64,18 @@ pipeline {
             post {
                 always {
                     junit testResults: '**/target/surefire-reports/*.xml', allowEmptyResults: true
-                    jacoco(
-                        execPattern: '**/target/jacoco.exec',
-                        classPattern: '**/target/classes',
-                        sourcePattern: '**/src/main/java',
-                        exclusionPattern: '**/*Test*.class'
-                    )
+                    script {
+                        try {
+                            jacoco(
+                                execPattern: '**/target/jacoco.exec',
+                                classPattern: '**/target/classes',
+                                sourcePattern: '**/src/main/java',
+                                exclusionPattern: '**/*Test*.class'
+                            )
+                        } catch (Exception e) {
+                            echo "JaCoCo report generation failed: ${e.message}"
+                        }
+                    }
                 }
             }
         }
