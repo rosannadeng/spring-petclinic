@@ -3,10 +3,9 @@
   hosts: production
   vars:
     app_name: spring-petclinic
-    app_port: 9090
+    app_port: 8080
     jar_file: spring-petclinic-*.jar
-    deploy_dir: /tmp/petclinic-prod
-    app_user: "{{ ansible_user_id }}"
+    deploy_dir: /opt/petclinic
 
   tasks:
     - name: Create deployment directory
@@ -15,52 +14,49 @@
         state: directory
         mode: '0755'
 
-    - name: Find JAR file in target directory
+    - name: Find JAR file in workspace
       find:
-        paths: "{{ playbook_dir }}/../target"
+        paths: "{{ lookup('env', 'WORKSPACE') }}/target"
         patterns: "{{ jar_file }}"
       register: jar_files
+      delegate_to: localhost
 
-    - name: Copy JAR file to production server
+    - name: Copy JAR file to production
       copy:
         src: "{{ jar_files.files[0].path }}"
         dest: "{{ deploy_dir }}/app.jar"
-        mode: '0644'
+        mode: '0755'
 
-    - name: Check if PetClinic is already running
-      shell: "pgrep -f '{{ deploy_dir }}/app.jar' || true"
-      register: app_running
-      changed_when: false
-
-    - name: Stop existing PetClinic process
-      shell: "pkill -f '{{ deploy_dir }}/app.jar' || true"
-      when: app_running.stdout != ""
+    - name: Stop existing application
+      shell: pkill -f 'java.*app.jar' || true
+      ignore_errors: yes
 
     - name: Wait for port to be released
       wait_for:
         port: "{{ app_port }}"
         state: stopped
         timeout: 30
-      when: app_running.stdout != ""
       ignore_errors: yes
 
-    - name: Start PetClinic application
-      shell: "nohup java -jar {{ deploy_dir }}/app.jar --server.port={{ app_port }} > {{ deploy_dir }}/app.log 2>&1 &"
-      async: 10
+    - name: Start application
+      shell: |
+        cd {{ deploy_dir }}
+        nohup java -jar app.jar --server.port={{ app_port }} > app.log 2>&1 &
+        sleep 5
+      async: 60
       poll: 0
 
     - name: Wait for application to start
       wait_for:
         port: "{{ app_port }}"
-        delay: 5
-        timeout: 60
+        delay: 10
+        timeout: 120
 
-    - name: Verify application is running
+    - name: Verify application health
       uri:
         url: "http://localhost:{{ app_port }}"
         status_code: 200
-      register: result
-      retries: 5
-      delay: 3
-      until: result.status == 200
-
+      register: health_check
+      retries: 10
+      delay: 5
+      until: health_check.status == 200

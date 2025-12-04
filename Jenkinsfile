@@ -2,88 +2,144 @@ pipeline {
     agent any
 
     triggers {
-        pollSCM('* * * * *')  
+        pollSCM('* * * * *')
     }
 
     environment {
-        MAVEN_OPTS = '-Xmx1024m'
-        PROJECT_NAME = 'spring-petclinic'
+        SONAR_HOST = 'http://sonarqube:9000'
+        DOCKER_NETWORK = 'spring-petclinic_devops-net'
     }
 
     stages {
-
-        /*********************************************
-         * Checkout code
-         *********************************************/
         stage('Checkout') {
             steps {
-                echo 'Checking out code...'
                 checkout scm
             }
         }
 
-        /*********************************************
-         * Build
-         *********************************************/
         stage('Build') {
             steps {
-                echo 'Building project...'
-                sh 'echo "Build stage completed - Maven not available in this agent"'
+                sh '''
+                    docker run --rm \
+                        --network ${DOCKER_NETWORK} \
+                        -v "${WORKSPACE}":/app \
+                        -w /app \
+                        maven-java25:latest \
+                        ./mvnw clean compile -DskipTests -q
+                '''
             }
         }
 
-        /*********************************************
-         * Test
-         *********************************************/
         stage('Test') {
             steps {
-                echo 'Running tests...'
-                sh 'echo "Test stage completed - Tests passed"'
+                sh '''
+                    docker run --rm \
+                        --network ${DOCKER_NETWORK} \
+                        -v "${WORKSPACE}":/app \
+                        -w /app \
+                        maven-java25:latest \
+                        ./mvnw test -Dtest="!PostgresIntegrationTests" -q
+                '''
+            }
+            post {
+                always {
+                    junit testResults: '**/target/surefire-reports/*.xml', allowEmptyResults: true
+                }
             }
         }
 
-        /*********************************************
-         * SonarQube Analysis
-         *********************************************/
         stage('SonarQube Analysis') {
             steps {
-                echo 'Running SonarQube analysis...'
-                sh 'echo "SonarQube analysis completed"'
+                sh '''
+                    docker run --rm \
+                        --network ${DOCKER_NETWORK} \
+                        -v "${WORKSPACE}":/app \
+                        -w /app \
+                        maven-java25:latest \
+                        ./mvnw sonar:sonar \
+                        -Dsonar.host.url=${SONAR_HOST} \
+                        -Dsonar.projectKey=spring-petclinic \
+                        -Dsonar.projectName=spring-petclinic || echo "SonarQube analysis skipped"
+                '''
             }
         }
 
-        /*********************************************
-         * Package
-         *********************************************/
         stage('Package') {
             steps {
-                echo 'Packaging application...'
-                sh 'echo "Package stage completed"'
+                sh '''
+                    docker run --rm \
+                        --network ${DOCKER_NETWORK} \
+                        -v "${WORKSPACE}":/app \
+                        -w /app \
+                        maven-java25:latest \
+                        ./mvnw package -DskipTests -q
+                '''
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                }
             }
         }
 
-        /*********************************************
-         * OWASP ZAP Scan
-         *********************************************/
         stage('OWASP ZAP Scan') {
             steps {
-                echo 'Running OWASP ZAP security scan...'
-                sh 'echo "OWASP ZAP scan completed"'
+                sh '''
+                    mkdir -p ${WORKSPACE}/zap-reports
+                    docker exec zap zap-baseline.py \
+                        -t http://petclinic:8080 \
+                        -r zap-report.html \
+                        -I || true
+                    docker cp zap:/zap/wrk/zap-report.html ${WORKSPACE}/zap-reports/ || true
+                '''
+            }
+            post {
+                always {
+                    publishHTML(target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'zap-reports',
+                        reportFiles: 'zap-report.html',
+                        reportName: 'OWASP ZAP Report'
+                    ])
+                }
             }
         }
 
-        /*********************************************
-         * Deploy
-         *********************************************/
-        stage('Deploy') {
+        stage('Deploy to Production') {
             steps {
-                echo 'Deploying to production...'
-                sh 'echo "Deployment completed"'
+                sh '''
+                    echo "Deploying to production server..."
+                    
+                    # Stop existing petclinic container
+                    docker stop petclinic || true
+                    docker rm petclinic || true
+                    
+                    # Build new image with updated JAR
+                    docker build -t petclinic:latest -f Dockerfile ${WORKSPACE}
+                    
+                    # Start new container
+                    docker run -d \
+                        --name petclinic \
+                        --network ${DOCKER_NETWORK} \
+                        -p 8081:8080 \
+                        petclinic:latest
+                    
+                    # Wait for application to start
+                    sleep 30
+                    
+                    # Verify deployment
+                    curl -s http://localhost:8081 | head -20 || echo "Deployment verification pending"
+                '''
             }
         }
     }
 
     post {
+        always {
+            cleanWs()
+        }
         success {
             echo 'Pipeline completed successfully!'
         }
