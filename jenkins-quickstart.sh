@@ -110,5 +110,4 @@ echo "  docker compose up -d"
 echo ""
 
 print_success "Jenkins quick start completed!"
-print_info "For detailed setup instructions, see JENKINS_SETUP.md"
 
