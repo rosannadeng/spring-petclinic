@@ -38,7 +38,7 @@ pipeline {
                         -v "${WORKSPACE}":/app \
                         -w /app \
                         maven-java25:latest \
-                        ./mvnw test -Dtest="!PostgresIntegrationTests" -q
+                        bash -c "chmod +x /app/mvnw && /app/mvnw test -Dtest='!PostgresIntegrationTests' -q"
                 '''
             }
             post {
@@ -56,10 +56,10 @@ pipeline {
                         -v "${WORKSPACE}":/app \
                         -w /app \
                         maven-java25:latest \
-                        ./mvnw sonar:sonar \
+                        bash -c "chmod +x /app/mvnw && /app/mvnw sonar:sonar \
                         -Dsonar.host.url=${SONAR_HOST} \
                         -Dsonar.projectKey=spring-petclinic \
-                        -Dsonar.projectName=spring-petclinic || echo "SonarQube analysis skipped"
+                        -Dsonar.projectName=spring-petclinic" || echo "SonarQube analysis skipped"
                 '''
             }
         }
@@ -72,7 +72,7 @@ pipeline {
                         -v "${WORKSPACE}":/app \
                         -w /app \
                         maven-java25:latest \
-                        ./mvnw package -DskipTests -q
+                        bash -c "chmod +x /app/mvnw && /app/mvnw package -DskipTests -q"
                 '''
             }
             post {
