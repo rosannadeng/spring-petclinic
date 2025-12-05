@@ -17,43 +17,12 @@ pipeline {
             }
         }
 
-        stage('Prepare') {
-            steps {
-                sh '''
-                    echo "Workspace contents:"
-                    ls -la ${WORKSPACE}
-                    
-                    echo "Checking mvnw file:"
-                    if [ -f "${WORKSPACE}/mvnw" ]; then
-                        chmod +x ${WORKSPACE}/mvnw
-                        echo "mvnw found and made executable"
-                    else
-                        echo "ERROR: mvnw file not found in workspace!"
-                        exit 1
-                    fi
-                '''
-            }
-        }
-
         stage('Build') {
             steps {
                 sh '''
-                    echo "DEBUG: Workspace path is: ${WORKSPACE}"
-                    echo "DEBUG: Files in workspace:"
-                    ls -la ${WORKSPACE} | head -20
-                    
-                    echo "DEBUG: Checking what's inside the Docker container:"
                     docker run --rm \
                         --network ${DOCKER_NETWORK} \
-                        -v "${WORKSPACE}":/app \
-                        -w /app \
-                        maven-java25:latest \
-                        bash -c "echo 'Container /app contents:' && ls -la /app | head -20 && echo 'mvnw file check:' && ls -l /app/mvnw"
-                    
-                    echo "DEBUG: Now running actual build:"
-                    docker run --rm \
-                        --network ${DOCKER_NETWORK} \
-                        -v "${WORKSPACE}":/app \
+                        -v /var/jenkins_home/workspace/${JOB_NAME}:/app
                         -w /app \
                         maven-java25:latest \
                         ./mvnw clean compile -DskipTests -q
@@ -66,7 +35,7 @@ pipeline {
                 sh '''
                     docker run --rm \
                         --network ${DOCKER_NETWORK} \
-                        -v "${WORKSPACE}":/app \
+                        -v /var/jenkins_home/workspace/${JOB_NAME}:/app \
                         -w /app \
                         maven-java25:latest \
                         ./mvnw test -Dtest="!PostgresIntegrationTests" -q
@@ -84,7 +53,7 @@ pipeline {
                 sh '''
                     docker run --rm \
                         --network ${DOCKER_NETWORK} \
-                        -v "${WORKSPACE}":/app \
+                        -v /var/jenkins_home/workspace/${JOB_NAME}:/app \
                         -w /app \
                         maven-java25:latest \
                         ./mvnw sonar:sonar \
@@ -100,7 +69,7 @@ pipeline {
                 sh '''
                     docker run --rm \
                         --network ${DOCKER_NETWORK} \
-                        -v "${WORKSPACE}":/app \
+                        -v /var/jenkins_home/workspace/${JOB_NAME}:/app \
                         -w /app \
                         maven-java25:latest \
                         ./mvnw package -DskipTests -q
