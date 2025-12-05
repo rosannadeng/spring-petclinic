@@ -20,8 +20,8 @@ pipeline {
                 dir("${WORKSPACE}") {
                     checkout scm
                 }
-                sh "echo 'Checked out project into ${WORKSPACE}/app:'"
-                sh "ls -la ${WORKSPACE}/app"
+                sh "echo 'Checked out project into ${WORKSPACE}:'"
+                sh "ls -la ${WORKSPACE}"
             }
         }
 
