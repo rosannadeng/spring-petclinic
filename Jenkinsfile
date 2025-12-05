@@ -58,18 +58,20 @@ pipeline {
                 }
             }
             steps {
-                sh """
+                withSonarQubeEnv('SonarQubeServer') {
+                    sh '''
                     docker run --rm \
-                        --network ${DOCKER_NETWORK} \
-                        -v ${WORKSPACE}:/app \
+                        --network spring-petclinic_devops-net \
+                        -v $WORKSPACE:/app \
                         -w /app \
                         maven-java25:latest \
                         ./mvnw sonar:sonar \
-                        -Dsonar.host.url=${SONAR_HOST} \
-                        -Dsonar.login=${SONAR_TOKEN} \
+                        -Dsonar.host.url=$SONAR_HOST \
+                        -Dsonar.login=$SONAR_TOKEN \
                         -Dsonar.projectKey=spring-petclinic \
                         -Dsonar.projectName=spring-petclinic
-                """
+                    '''
+                }
             }
         }
 
