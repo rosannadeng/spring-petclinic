@@ -1,9 +1,6 @@
 pipeline {
     agent {
-        docker {
-        image 'maven-java25:latest'
-        args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
+        label 'docker'
     }
 
     options {
