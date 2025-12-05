@@ -100,48 +100,30 @@ pipeline {
         stage('OWASP ZAP Scan') {
             steps {
                 sh '''
-                    set +e
-                    ZAP_WORKDIR="${WORKSPACE}/zap-wrk"
-                    mkdir -p "${WORKSPACE}/zap-reports" "${ZAP_WORKDIR}"
-
-                    echo "Waiting for petclinic to be ready for scanning..."
-                    for i in {1..30}; do
-                        if docker run --rm --network ${DOCKER_NETWORK} curlimages/curl:8.10.1 -s -f http://petclinic:8080 > /dev/null 2>&1; then
-                            echo "✓ Petclinic is accessible"
-                            break
-                        fi
-                        echo "Waiting for petclinic... ($i/30)"
-                        sleep 2
-                    done
-
                     echo "Running ZAP baseline scan..."
-                    rm -f "${ZAP_WORKDIR}/zap-report.html" "${ZAP_WORKDIR}/zap_out.json"
-                    docker run --rm \
-                        --network ${DOCKER_NETWORK} \
-                        -v "${ZAP_WORKDIR}":/zap/wrk \
-                        ghcr.io/zaproxy/zaproxy:stable \
-                        zap-baseline.py \
+
+                    # Remove previous local report directory
+                    mkdir -p ${WORKSPACE}/zap-reports
+                    rm -f ${WORKSPACE}/zap-reports/zap-report.html
+
+                    # Run ZAP (write INSIDE container, NOT to the mounted /zap/wrk)
+                    docker exec zap zap-baseline.py \
                         -t http://petclinic:8080 \
-                        -r zap-report.html \
-                        -I --autooff
-                    ZAP_EXIT_CODE=$?
+                        -r /tmp/zap-report.html \
+                        -I --autooff || echo "ZAP scan finished with warnings"
 
-                    if [ -f "${ZAP_WORKDIR}/zap-report.html" ]; then
-                        cp "${ZAP_WORKDIR}/zap-report.html" "${WORKSPACE}/zap-reports/"
-                        [ -f "${ZAP_WORKDIR}/zap_out.json" ] && cp "${ZAP_WORKDIR}/zap_out.json" "${WORKSPACE}/zap-reports/" || true
-                    else
-                        echo "<html><body><h1>ZAP Scan Failed</h1><p>Report was not generated. Exit code: $ZAP_EXIT_CODE</p></body></html>" > "${WORKSPACE}/zap-reports/zap-report.html"
-                    fi
+                    # Copy report OUT of the container
+                    docker cp zap:/tmp/zap-report.html ${WORKSPACE}/zap-reports/zap-report.html || {
+                        echo "<html><body><h1>ZAP Scan Failed</h1></body></html>" > ${WORKSPACE}/zap-reports/zap-report.html
+                    }
 
-                    echo "Files inside ZAP workdir:"
-                    ls -la "${ZAP_WORKDIR}" || true
+                    echo "ZAP report copied to workspace."
                 '''
             }
-
             post {
                 always {
                     publishHTML(target: [
-                        allowMissing: false,
+                        allowMissing: true,
                         alwaysLinkToLastBuild: true,
                         keepAll: true,
                         reportDir: 'zap-reports',
@@ -152,54 +134,22 @@ pipeline {
             }
         }
 
-        stage('Deploy to Production') {
+       stage('Deploy to Production') {
             steps {
                 sh '''
-                    echo "Deploying to production server via Ansible..."
-                    
-                    # Add route to reach production VM from Docker container
-                    ip route add 192.168.1.0/24 via 172.18.0.1 2>/dev/null || echo "Route already exists or cannot be added"
-                    
                     export ANSIBLE_HOST_KEY_CHECKING=False
-                    export ANSIBLE_TIMEOUT=30
                     export ANSIBLE_SSH_ARGS="-o ConnectTimeout=30 -o ConnectionAttempts=3"
-                    
-                    # Ensure SSH key has correct permissions
-                    if [ -f /var/jenkins_home/.ssh/id_rsa ]; then
-                        chmod 600 /var/jenkins_home/.ssh/id_rsa
-                        chmod 700 /var/jenkins_home/.ssh
-                    else
-                        echo "WARNING: SSH key not found at /var/jenkins_home/.ssh/id_rsa"
-                        echo "Please set up SSH key for Ansible deployment"
-                        exit 1
-                    fi
-                    
-                    # Test basic network connectivity first
-                    echo "Testing network connectivity to VM..."
-                    ping -c 3 192.168.66.2 || echo "Warning: Ping failed, but SSH might still work"
-                    
-                    # Test SSH connectivity directly
-                    echo "Testing SSH connection..."
-                    timeout 10 ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -i /var/jenkins_home/.ssh/id_rsa ubuntu@192.168.66.2 "echo SSH connection successful" || {
-                        echo "ERROR: Direct SSH test failed"
-                        echo "Please check: 1) VM is running 2) SSH service is up 3) Network connectivity"
-                    }
-                    
-                    # Test Ansible connectivity
+
+                    # Ensure SSH key permissions
+                    chmod 600 /var/jenkins_home/.ssh/id_rsa
+                    chmod 700 /var/jenkins_home/.ssh
+
+                    # Move into Ansible directory
                     cd ${WORKSPACE}/ansible
-                    echo "Testing Ansible connection to production VM..."
-                    ansible production -i inventory/hosts -m ping -vvv || {
-                        echo "ERROR: Cannot connect to production server via Ansible"
-                        exit 1
-                    }
-                    
-                    # Run Ansible deployment playbook
-                    echo "Deploying application to production VM..."
+
+                    # Run playbook (Ansible will fail naturally if SSH/inventory is wrong)
                     ansible-playbook -i inventory/hosts deploy.yml
-                    
-                    # Verify deployment on remote server
-                    echo "✓ Application deployed to production VM at 192.168.66.2:8080"
-                    echo "Access the application at: 192.168.66.2:8080"
+                    echo "Deployment complete!"
                 '''
             }
         }

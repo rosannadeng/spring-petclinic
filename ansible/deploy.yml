@@ -9,6 +9,13 @@
     deploy_dir: /opt/petclinic
 
   tasks:
+    - name: Install Java 17
+      apt:
+        name: openjdk-17-jdk
+        state: present
+      become: yes
+      update_cache: yes
+
     - name: Create deployment directory
       file:
         path: "{{ deploy_dir }}"
