@@ -9,9 +9,6 @@ pipeline {
 
     environment {
         DOCKER_NETWORK = "spring-petclinic_devops-net"
-        SONAR_HOST = "http://sonarqube:9000"
-
-        SONAR_TOKEN = credentials('SONAR_TOKEN')  
     }
 
     stages {
@@ -62,7 +59,7 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQubeServer') {
                     sh "./mvnw sonar:sonar " +
-                        "-Dsonar.host.url=$SONAR_HOST " +
+                        "-Dsonar.host.url=$SONAR_HOST_URL " +
                         "-Dsonar.login=$SONAR_TOKEN " +
                         "-Dsonar.projectKey=spring-petclinic " +
                         "-Dsonar.projectName=spring-petclinic"
