@@ -22,7 +22,7 @@ pipeline {
                 sh '''
                     docker run --rm \
                         --network ${DOCKER_NETWORK} \
-                        -v /var/jenkins_home/workspace/${JOB_NAME}:/app \
+                        -v ${WORKSPACE}:/app \
                         -w /app \
                         maven-java25:latest \
                         ./mvnw clean compile -DskipTests -q
@@ -35,7 +35,7 @@ pipeline {
                 sh '''
                     docker run --rm \
                         --network ${DOCKER_NETWORK} \
-                        -v /var/jenkins_home/workspace/${JOB_NAME}:/app \
+                        -v ${WORKSPACE}:/app \
                         -w /app \
                         maven-java25:latest \
                         ./mvnw test -Dtest="!PostgresIntegrationTests" -q
@@ -53,7 +53,7 @@ pipeline {
                 sh '''
                     docker run --rm \
                         --network ${DOCKER_NETWORK} \
-                        -v /var/jenkins_home/workspace/${JOB_NAME}:/app \
+                        -v ${WORKSPACE}:/app \
                         -w /app \
                         maven-java25:latest \
                         ./mvnw sonar:sonar \
@@ -69,7 +69,7 @@ pipeline {
                 sh '''
                     docker run --rm \
                         --network ${DOCKER_NETWORK} \
-                        -v /var/jenkins_home/workspace/${JOB_NAME}:/app \
+                        -v ${WORKSPACE}:/app \
                         -w /app \
                         maven-java25:latest \
                         ./mvnw package -DskipTests -q
