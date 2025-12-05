@@ -12,7 +12,6 @@ services:
     environment:
       - JENKINS_OPTS=--prefix=/jenkins
       - CASC_JENKINS_CONFIG=/var/jenkins_home/casc_configs/jenkins.yaml
-      - SONAR_TOKEN=${SONAR_TOKEN}
     volumes:
       - jenkins_home:/var/jenkins_home
       - ./jenkins.yaml:/var/jenkins_home/casc_configs/jenkins.yaml

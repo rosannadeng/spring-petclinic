@@ -25,15 +25,6 @@ unclassified:
         serverUrl: "http://sonarqube:9000"
         credentialsId: "sonar-token"
 
-credentials:
-  system:
-    domainCredentials:
-      - credentials:
-          - string:
-              id: "sonar-token"
-              description: "SonarQube Token"
-              secret: "${SONAR_TOKEN}"
-
 tool:
   maven:
     installations:
