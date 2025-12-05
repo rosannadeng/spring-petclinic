@@ -5,7 +5,7 @@ pipeline {
         skipDefaultCheckout()
     }
 
-    environments {
+    environment {
         DOCKER_NETWORK = "spring-petclinic_devops-net"
         SONAR_HOST = "http://sonarqube:9000"
     }
