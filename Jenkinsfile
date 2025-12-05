@@ -11,9 +11,13 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
+        stage('Force Checkout') {
             steps {
-                checkout scm
+                dir("${WORKSPACE}") {
+                    checkout scm
+                }
+                sh "echo 'WORKSPACE content:'"
+                sh "ls -la ${WORKSPACE}"
             }
         }
 
