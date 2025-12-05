@@ -40,7 +40,7 @@ https://ubuntu.com/download/server
 > Open your Virtual Machine and click "Create a New Virtual Machine"  
 " what type of configuration do you want? Typical (Recommended)" -> hit next
 "installer disc image file (iso)" -> make sure to select the correct ISO image & hit next
-![](image-1.png)
+![VM Setup Step 1](SCREENSHOTS/ReadMeScreenshots/image-1.png)
 
 > "virtual Machine name" -> name it whatever you like. make sure your location of the machine is in the correct spot (its wherever on your system your vm files are stores or create a new file in your users folder for your user)
 
@@ -577,5 +577,6 @@ copy this file into the container
 ```sudo docker cp /tmp/createAdmin.groovy jenkins:/var/jenkins_home/init.groovy.d/createAdmin.groovy```
 
 ```sudo docker restart jenkins```  <-runs the script 
+
 
 
