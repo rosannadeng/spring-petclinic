@@ -149,7 +149,7 @@ pipeline {
 
     post {
         always {
-            // cleanWs()
+            echo 'skip cleanWs'
         }
         success {
             echo 'Pipeline completed successfully!'
