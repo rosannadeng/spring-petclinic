@@ -1,5 +1,0 @@
-<?xml version='1.1' encoding='UTF-8'?>
-<io.jenkins.plugins.analysis.warnings.groovy.ParserConfiguration plugin="warnings-ng@12.9848.v5603977006f2">
-  <parsers/>
-  <consoleLogScanningPermitted>false</consoleLogScanningPermitted>
-</io.jenkins.plugins.analysis.warnings.groovy.ParserConfiguration>
