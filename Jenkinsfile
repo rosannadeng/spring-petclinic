@@ -127,6 +127,8 @@ pipeline {
                 sh '''
                     echo "Deploying to production server via Ansible..."
                     
+                    export ANSIBLE_HOST_KEY_CHECKING=False
+                    
                     # Ensure SSH key has correct permissions
                     if [ -f /var/jenkins_home/.ssh/id_rsa ]; then
                         chmod 600 /var/jenkins_home/.ssh/id_rsa
@@ -139,16 +141,20 @@ pipeline {
                     
                     # Test connectivity to production server
                     cd ${WORKSPACE}/ansible
+                    echo "Testing connection to production VM..."
                     ansible production -i inventory/hosts -m ping || {
-                        echo "ERROR: Cannot connect to production server"
+                        echo "✗ Cannot connect to production VM"
+                        echo "Please check: 1) VM is running, 2) SSH key is in VM's authorized_keys, 3) Network connectivity"
                         exit 1
                     }
                     
                     # Run Ansible deployment playbook
+                    echo "Deploying application to production VM..."
                     ansible-playbook -i inventory/hosts deploy.yml
                     
                     # Verify deployment on remote server
-                    echo "✓ Application deployed to production server at 192.168.1.185:8080"
+                    echo "✓ Application deployed to production VM at 192.168.1.185:8080"
+                    echo "Access the application at: http://192.168.1.185:8080"
                 '''
             }
         }

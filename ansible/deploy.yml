@@ -1,6 +1,7 @@
 ---
 - name: Deploy Spring PetClinic to Production
   hosts: production
+  become: yes
   vars:
     app_name: spring-petclinic
     app_port: 8080
@@ -13,6 +14,8 @@
         path: "{{ deploy_dir }}"
         state: directory
         mode: '0755'
+        owner: ubuntu
+        group: ubuntu
 
     - name: Find JAR file in workspace
       find:
@@ -26,6 +29,8 @@
         src: "{{ jar_files.files[0].path }}"
         dest: "{{ deploy_dir }}/app.jar"
         mode: '0755'
+        owner: ubuntu
+        group: ubuntu
 
     - name: Stop existing application
       shell: pkill -f 'java.*app.jar' || true
