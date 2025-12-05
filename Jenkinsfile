@@ -100,21 +100,26 @@ pipeline {
         stage('OWASP ZAP Scan') {
             steps {
                 sh '''
-                docker exec zap rm -f /zap/wrk/zap-report.html || true
+                    echo "Running ZAP baseline scan..."
 
-                docker exec zap zap-baseline.py \
-                    -t http://petclinic:8080 \
-                    -r zap-report.html \
-                    -I --autooff
+                    docker exec zap rm -f /zap/wrk/zap-report.html || true
 
-                docker cp zap:/zap/wrk/zap-report.html ${WORKSPACE}/zap-reports/ || \
-                    echo "<html><body><h1>No report generated</h1></body></html>" > ${WORKSPACE}/zap-reports/zap-report.html
+                    docker exec zap zap-baseline.py \
+                        -t http://petclinic:8080 \
+                        -r /zap/wrk/zap-report.html \
+                        -I --autooff
+
+                    echo "Files inside /zap/wrk:"
+                    docker exec zap ls -la /zap/wrk
+                    mkdir -p zap-reports
+                    docker cp zap:/zap/wrk/zap-report.html zap-reports/
                 '''
             }
+
             post {
                 always {
                     publishHTML(target: [
-                        allowMissing: true,
+                        allowMissing: false,
                         alwaysLinkToLastBuild: true,
                         keepAll: true,
                         reportDir: 'zap-reports',
