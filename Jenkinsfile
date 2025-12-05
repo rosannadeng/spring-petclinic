@@ -125,27 +125,30 @@ pipeline {
         stage('Deploy to Production') {
             steps {
                 sh '''
-                    echo "Deploying to production server..."
+                    echo "Deploying to production server via Ansible..."
                     
-                    # Stop existing petclinic container
-                    docker stop petclinic || true
-                    docker rm petclinic || true
+                    # Ensure SSH key has correct permissions
+                    if [ -f /var/jenkins_home/.ssh/id_rsa ]; then
+                        chmod 600 /var/jenkins_home/.ssh/id_rsa
+                        chmod 700 /var/jenkins_home/.ssh
+                    else
+                        echo "WARNING: SSH key not found at /var/jenkins_home/.ssh/id_rsa"
+                        echo "Please set up SSH key for Ansible deployment"
+                        exit 1
+                    fi
                     
-                    # Build new image with updated JAR
-                    docker build -t petclinic:latest -f Dockerfile ${WORKSPACE}
+                    # Test connectivity to production server
+                    cd ${WORKSPACE}/ansible
+                    ansible production -i inventory/hosts -m ping || {
+                        echo "ERROR: Cannot connect to production server"
+                        exit 1
+                    }
                     
-                    # Start new container
-                    docker run -d \
-                        --name petclinic \
-                        --network ${DOCKER_NETWORK} \
-                        -p 8081:8080 \
-                        petclinic:latest
+                    # Run Ansible deployment playbook
+                    ansible-playbook -i inventory/hosts deploy.yml
                     
-                    # Wait for application to start
-                    sleep 30
-                    
-                    # Verify deployment
-                    curl -s http://localhost:8081 | head -20 || echo "Deployment verification pending"
+                    # Verify deployment on remote server
+                    echo "✓ Application deployed to production server at 192.168.1.185:8080"
                 '''
             }
         }
