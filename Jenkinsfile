@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    options {
+        skipDefaultCheckout()
+    }
+
     triggers {
         pollSCM('* * * * *')
     }
@@ -11,15 +15,16 @@ pipeline {
     }
 
     stages {
-        stage('Force Checkout') {
+        stage('Checkout') {
             steps {
-                dir("${WORKSPACE}") {
+                dir("${WORKSPACE}/app") {
                     checkout scm
                 }
-                sh "echo 'WORKSPACE content:'"
-                sh "ls -la ${WORKSPACE}"
+                sh "echo 'Checked out project into ${WORKSPACE}/app:'"
+                sh "ls -la ${WORKSPACE}/app"
             }
         }
+
 
         stage('DEBUG') {
             steps {
