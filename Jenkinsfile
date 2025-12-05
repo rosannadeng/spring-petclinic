@@ -100,24 +100,43 @@ pipeline {
         stage('OWASP ZAP Scan') {
             steps {
                 sh '''
+                    set +e
+                    ZAP_WORKDIR="${WORKSPACE}/zap-wrk"
+                    mkdir -p "${WORKSPACE}/zap-reports" "${ZAP_WORKDIR}"
+
+                    echo "Waiting for petclinic to be ready for scanning..."
+                    for i in {1..30}; do
+                        if docker run --rm --network ${DOCKER_NETWORK} curlimages/curl:8.10.1 -s -f http://petclinic:8080 > /dev/null 2>&1; then
+                            echo "✓ Petclinic is accessible"
+                            break
+                        fi
+                        echo "Waiting for petclinic... ($i/30)"
+                        sleep 2
+                    done
+
                     echo "Running ZAP baseline scan..."
-
-                    # Remove previous local report directory
-                    mkdir -p ${WORKSPACE}/zap-reports
-                    rm -f ${WORKSPACE}/zap-reports/zap-report.html
-
-                    # Run ZAP (write INSIDE container, NOT to the mounted /zap/wrk)
-                    docker exec zap zap-baseline.py \
+                    rm -f "${ZAP_WORKDIR}/zap-report.html" "${ZAP_WORKDIR}/zap_out.json"
+                    docker run --rm \
+                        --network ${DOCKER_NETWORK} \
+                        -v "${ZAP_WORKDIR}":/zap/wrk \
+                        ghcr.io/zaproxy/zaproxy:stable \
+                        zap-baseline.py \
                         -t http://petclinic:8080 \
-                        -r /tmp/zap-report.html \
-                        -I --autooff || echo "ZAP scan finished with warnings"
+                        -r zap-report.html \
+                        -I --autooff
+                    ZAP_EXIT_CODE=$?
 
-                    # Copy report OUT of the container
-                    docker cp zap:/tmp/zap-report.html ${WORKSPACE}/zap-reports/zap-report.html || {
-                        echo "<html><body><h1>ZAP Scan Failed</h1></body></html>" > ${WORKSPACE}/zap-reports/zap-report.html
-                    }
+                    if [ -f "${ZAP_WORKDIR}/zap-report.html" ]; then
+                        cp "${ZAP_WORKDIR}/zap-report.html" "${WORKSPACE}/zap-reports/"
+                        [ -f "${ZAP_WORKDIR}/zap_out.json" ] && cp "${ZAP_WORKDIR}/zap_out.json" "${WORKSPACE}/zap-reports/" || true
+                        echo "ZAP report copied to workspace."
+                    else
+                        echo "<html><body><h1>ZAP Scan Failed</h1><p>Exit code: $ZAP_EXIT_CODE</p></body></html>" > "${WORKSPACE}/zap-reports/zap-report.html"
+                        echo "ZAP report not found; created placeholder."
+                    fi
 
-                    echo "ZAP report copied to workspace."
+                    echo "Files in ZAP workdir:"
+                    ls -la "${ZAP_WORKDIR}" || true
                 '''
             }
             post {

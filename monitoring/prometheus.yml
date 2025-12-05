@@ -12,10 +12,13 @@ scrape_configs:
     metrics_path: /prometheus
     static_configs:
       - targets:
-          - jenkins:8080
+          - jenkins:8082
 
   - job_name: sonarqube
     metrics_path: /api/monitoring/metrics
+    basic_auth:
+      username: sqa_b320276206f3c9f4f9e95fc1235ed2e4600f8baf
+      password: ""
     static_configs:
       - targets:
           - sonarqube:9000

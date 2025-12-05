@@ -13,8 +13,8 @@
       apt:
         name: openjdk-17-jdk
         state: present
+        update_cache: yes
       become: yes
-      update_cache: yes
 
     - name: Create deployment directory
       file:
