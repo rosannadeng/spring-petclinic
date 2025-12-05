@@ -143,8 +143,7 @@ pipeline {
                     cd ${WORKSPACE}/ansible
                     echo "Testing connection to production VM..."
                     ansible production -i inventory/hosts -m ping || {
-                        echo "✗ Cannot connect to production VM"
-                        echo "Please check: 1) VM is running, 2) SSH key is in VM's authorized_keys, 3) Network connectivity"
+                        echo "ERROR: Cannot connect to production server"
                         exit 1
                     }
                     
