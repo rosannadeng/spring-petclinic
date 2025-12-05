@@ -19,6 +19,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - devops-net
+    extra_hosts:
+      - "production-vm:192.168.1.185"
     depends_on:
       - sonarqube
   postgres:

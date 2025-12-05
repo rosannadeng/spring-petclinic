@@ -127,6 +127,9 @@ pipeline {
                 sh '''
                     echo "Deploying to production server via Ansible..."
                     
+                    # Add route to reach production VM from Docker container
+                    ip route add 192.168.1.0/24 via 172.18.0.1 2>/dev/null || echo "Route already exists or cannot be added"
+                    
                     export ANSIBLE_HOST_KEY_CHECKING=False
                     export ANSIBLE_TIMEOUT=30
                     export ANSIBLE_SSH_ARGS="-o ConnectTimeout=30 -o ConnectionAttempts=3"
