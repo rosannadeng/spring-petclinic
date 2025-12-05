@@ -44,7 +44,7 @@ https://ubuntu.com/download/server
 
 > "virtual Machine name" -> name it whatever you like. make sure your location of the machine is in the correct spot (its wherever on your system your vm files are stores or create a new file in your users folder for your user)
 
-![alt text](image-2.png)
+![VM Setup Step 2](SCREENSHOTS/ReadMeScreenshots/image-2.png)
 
 > Store as a single virtual disk file. Your Server should have at least 60 GB as your server will start at 8-12 GB as ready. If you can not afford to give that muc or simply do not want to. Use 35-40gb and when running this lab ensure you are running the commands found in (CleanUpTime)
 
@@ -79,27 +79,26 @@ Leave this be. DO NOT ENCRYPT FOR THIS PROJECT. Although encrypting is a good id
 > Set your own user, pass, servername etc. (REMEMBER THIS.)
 
 >NEXT! Storage Configuration (leave be. hit done)
-![alt text](image-3.png)
+![Screenshot](SCREENSHOTS/ReadMeScreenshots/image-3.png)
 
 >Next! Upgrade to Ubuntu Pro (Do not need. hit continue) 
-![alt text](image-4.png)
+![Screenshot](SCREENSHOTS/ReadMeScreenshots/image-4.png)
 
 >NEXT! SSH Configuration  
 Enable "install OpenSSH Server" BUT DO NOT import at this stage. You will do this later. 
-![alt text](image-5.png)
+![Screenshot](SCREENSHOTS/ReadMeScreenshots/image-5.png)
 
 >Feature server snaps (leave be. hit done)  
-![alt text](image-6.png)
-
+![Screenshot](SCREENSHOTS/ReadMeScreenshots/image-6.png)
 >*Done! let it run and do its thing.* Dont freak out if it says failed to mount after selecting reboot. just press enter. 
 
 >It should look like: 
-![alt text](image-7.png)
+![Screenshot](SCREENSHOTS/ReadMeScreenshots/image-7.png)
 
 ***Take a snapshot here.***
 
 >Click this clock plus button 
-![alt text](image-8.png)
+![Screenshot](SCREENSHOTS/ReadMeScreenshots/image-9.png)
 
 ## Connecting my Virtual Machine to your host machine
 ##### When you are configuring jenkins, zap, etc. It is is easier to copy paste our commands from our github or running scripts frpm your host terminal than just typing it out on the production server. Plus the interface is 1000% better. 
@@ -107,13 +106,13 @@ Enable "install OpenSSH Server" BUT DO NOT import at this stage. You will do thi
 > Login to the server with your username and password you created in the step above for this server. 
  and the ip a -> this allow you to see the ip information for this server 
 
-![alt text](image-10.png) *The ip for your server is at the inet part without the /24* 
+![Screenshot](SCREENSHOTS/ReadMeScreenshots/image-10.png) *The ip for your server is at the inet part without the /24* 
 
 > check if ssh is enable by running the command in your ubuntu server
 
 ```sudo systemctl status ssh``` *For sudo (super user give admin privlages) type your password for the server. thi will happen multiple times* 
 
-![alt text](image-11.png)
+![Screenshot](SCREENSHOTS/ReadMeScreenshots/image-11.png)
 
 > enable if not
 ```sudo systemctl enable ssh --now```
@@ -140,7 +139,7 @@ Enable "install OpenSSH Server" BUT DO NOT import at this stage. You will do thi
 ***Take another snapshot here.***
 Things should be straight forward from here getting the project to come up. 
 
-![alt text](image-12.png)
+![Screenshot](SCREENSHOTS/ReadMeScreenshots/image-12.png)
 
 This is where you now run your commands unless stated otherwise. 
 
@@ -391,29 +390,29 @@ docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 
 1. Select **"Install suggested plugins"**
 
-![alt text](image-13.png)
+![Screenshot](SCREENSHOTS/ReadMeScreenshots/image-13.png)
 
 
 Select plug-in to install: Here is the configurations of the jenkins plugin
 
-![Organization and Administration](image-14.png)
-![Build Features](image-15.png)
-![Build Tools](image-16.png)
+![Organization and Administration](SCREENSHOTS/ReadMeScreenshots/image-14.png)
+![Build Features](SCREENSHOTS/ReadMeScreenshots/image-15.png)
+![Build Tools](SCREENSHOTS/ReadMeScreenshots/image-16.png)
 
-![build analysis and reporting](image-17.png)
+![build analysis and reporting](SCREENSHOTS/ReadMeScreenshots/image-17.png)
 
-![Pipelines and Continuous Delivery](image-18.png)
+![Pipelines and Continuous Delivery](SCREENSHOTS/ReadMeScreenshots/image-18.png)
 
-![Source code management](image-19.png)
+![Source code management](SCREENSHOTS/ReadMeScreenshots/image-19.png)
 
-![distributed builds](image-20.png)
+![distributed builds](SCREENSHOTS/ReadMeScreenshots/image-20.png)
 
-![Notifications](image-21.png)
+![Notifications](SCREENSHOTS/ReadMeScreenshots/image-21.png)
 
-![apperiance](image-22.png)
+![apperiance](SCREENSHOTS/ReadMeScreenshots/image-22.png)
 
 You should see this screen 
-![jenkins getting started](image-23.png)
+![jenkins getting started](SCREENSHOTS/ReadMeScreenshots/image-23.png)
 
 
 CLICK THE BOTTOM button to continue as admin, NOT ADMIN USER. We will create a user in a momment but you need to be able to access your admin account as well. 
@@ -503,7 +502,7 @@ save and exit out of the file ctrl-x yes enter
 
 check if prometheus is all green and prometheusm jenkins and sonarqube are all up: http://yourVMIp:9090/targets?search=
 
-![alt text](image-24.png)
+![alt text](SCREENSHOTS/ReadMeScreenshots/image-24.png)
 
 ## configure grafana-dashboards
 
@@ -516,20 +515,20 @@ http://yourVmIp:3030
 configure your data source
 
 go to 
-![grafana datasources](image-25.png)
+![grafana datasources](SCREENSHOTS/ReadMeScreenshots/image-25.png)
 
 then ensure your dashboard can get to your prometheus container using 
 http://prometheus:9090
 
-![alt text](image-26.png)
+![alt text](SCREENSHOTS/ReadMeScreenshots/image-26.png)
 
 now do to dashboards by clicking the left hand stack and clicking dashboards 
 
-![DashboardOption2](image-27.png)
+![DashboardOption2](SCREENSHOTS/ReadMeScreenshots/image-27.png)
 
 or 
 
-![Dashboardoption1](image-28.png)
+![Dashboardoption1](SCREENSHOTS/ReadMeScreenshots/image-28.png)
 
 create new dashboards -> datasourse prometheus 
 
@@ -537,7 +536,7 @@ Click on the add query and then select a metric with one of the proconfigured on
 
 save and name it correctly
 
-![Granfana dashboard](image-29.png)
+![Granfana dashboard](SCREENSHOTS/ReadMeScreenshots/image-29.png)
 
 great you now have a dashboard.
 
@@ -577,6 +576,7 @@ copy this file into the container
 ```sudo docker cp /tmp/createAdmin.groovy jenkins:/var/jenkins_home/init.groovy.d/createAdmin.groovy```
 
 ```sudo docker restart jenkins```  <-runs the script 
+
 
 
 
