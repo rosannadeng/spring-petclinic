@@ -100,12 +100,46 @@ pipeline {
         stage('OWASP ZAP Scan') {
             steps {
                 sh '''
+                    set +e  # Don't exit on error
                     mkdir -p ${WORKSPACE}/zap-reports
+                    
+                    # Wait for petclinic to be fully ready
+                    echo "Waiting for petclinic to be ready for scanning..."
+                    for i in {1..30}; do
+                        if docker exec zap curl -s -f http://petclinic:8080 > /dev/null 2>&1; then
+                            echo "✓ Petclinic is accessible"
+                            break
+                        fi
+                        echo "Waiting for petclinic... ($i/30)"
+                        sleep 2
+                    done
+                    
+                    # Clean up previous reports in ZAP container
+                    docker exec zap rm -f /zap/wrk/zap-report.html || true
+                    
+                    # Run ZAP baseline scan
+                    echo "Starting OWASP ZAP scan..."
                     docker exec zap zap-baseline.py \
                         -t http://petclinic:8080 \
                         -r zap-report.html \
-                        -I || true
-                    docker cp zap:/zap/wrk/zap-report.html ${WORKSPACE}/zap-reports/ || true
+                        -I
+                    ZAP_EXIT_CODE=$?
+                    
+                    # Check if report was generated
+                    if docker exec zap test -f /zap/wrk/zap-report.html; then
+                        echo "✓ ZAP report generated"
+                        docker cp zap:/zap/wrk/zap-report.html ${WORKSPACE}/zap-reports/
+                        echo "✓ ZAP report copied to workspace"
+                    else
+                        echo "✗ ZAP report not found, creating placeholder"
+                        echo "<html><body><h1>ZAP Scan Failed</h1><p>Report was not generated. Exit code: $ZAP_EXIT_CODE</p></body></html>" > ${WORKSPACE}/zap-reports/zap-report.html
+                    fi
+                    
+                    # List files for debugging
+                    echo "Files in ZAP container:"
+                    docker exec zap ls -la /zap/wrk/ || true
+                    
+                    exit 0  # Always succeed to continue pipeline
                 '''
             }
             post {
