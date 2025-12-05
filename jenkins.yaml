@@ -32,7 +32,7 @@ credentials:
           - string:
               id: "sonar-token"
               description: "SonarQube Token"
-              secret: "${SONAR_AUTH_TOKEN}"
+              secret: "${SONAR_TOKEN}"
 
 tool:
   maven:
