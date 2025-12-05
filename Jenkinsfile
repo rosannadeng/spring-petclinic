@@ -128,6 +128,8 @@ pipeline {
                     echo "Deploying to production server via Ansible..."
                     
                     export ANSIBLE_HOST_KEY_CHECKING=False
+                    export ANSIBLE_TIMEOUT=30
+                    export ANSIBLE_SSH_ARGS="-o ConnectTimeout=30 -o ConnectionAttempts=3"
                     
                     # Ensure SSH key has correct permissions
                     if [ -f /var/jenkins_home/.ssh/id_rsa ]; then
@@ -139,11 +141,22 @@ pipeline {
                         exit 1
                     fi
                     
-                    # Test connectivity to production server
+                    # Test basic network connectivity first
+                    echo "Testing network connectivity to VM..."
+                    ping -c 3 192.168.1.185 || echo "Warning: Ping failed, but SSH might still work"
+                    
+                    # Test SSH connectivity directly
+                    echo "Testing SSH connection..."
+                    timeout 10 ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -i /var/jenkins_home/.ssh/id_rsa ubuntu@192.168.1.185 "echo SSH connection successful" || {
+                        echo "ERROR: Direct SSH test failed"
+                        echo "Please check: 1) VM is running 2) SSH service is up 3) Network connectivity"
+                    }
+                    
+                    # Test Ansible connectivity
                     cd ${WORKSPACE}/ansible
-                    echo "Testing connection to production VM..."
-                    ansible production -i inventory/hosts -m ping || {
-                        echo "ERROR: Cannot connect to production server"
+                    echo "Testing Ansible connection to production VM..."
+                    ansible production -i inventory/hosts -m ping -vvv || {
+                        echo "ERROR: Cannot connect to production server via Ansible"
                         exit 1
                     }
                     
