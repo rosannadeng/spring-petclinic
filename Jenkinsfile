@@ -17,6 +17,24 @@ pipeline {
             }
         }
 
+        stage('Prepare') {
+            steps {
+                sh '''
+                    echo "Workspace contents:"
+                    ls -la ${WORKSPACE}
+                    
+                    echo "Checking mvnw file:"
+                    if [ -f "${WORKSPACE}/mvnw" ]; then
+                        chmod +x ${WORKSPACE}/mvnw
+                        echo "mvnw found and made executable"
+                    else
+                        echo "ERROR: mvnw file not found in workspace!"
+                        exit 1
+                    fi
+                '''
+            }
+        }
+
         stage('Build') {
             steps {
                 sh '''
@@ -25,7 +43,7 @@ pipeline {
                         -v "${WORKSPACE}":/app \
                         -w /app \
                         maven-java25:latest \
-                        bash -c "chmod +x /app/mvnw && /app/mvnw clean compile -DskipTests -q"
+                        ./mvnw clean compile -DskipTests -q
                 '''
             }
         }
@@ -38,7 +56,7 @@ pipeline {
                         -v "${WORKSPACE}":/app \
                         -w /app \
                         maven-java25:latest \
-                        bash -c "chmod +x /app/mvnw && /app/mvnw test -Dtest='!PostgresIntegrationTests' -q"
+                        ./mvnw test -Dtest="!PostgresIntegrationTests" -q
                 '''
             }
             post {
@@ -56,10 +74,10 @@ pipeline {
                         -v "${WORKSPACE}":/app \
                         -w /app \
                         maven-java25:latest \
-                        bash -c "chmod +x /app/mvnw && /app/mvnw sonar:sonar \
+                        ./mvnw sonar:sonar \
                         -Dsonar.host.url=${SONAR_HOST} \
                         -Dsonar.projectKey=spring-petclinic \
-                        -Dsonar.projectName=spring-petclinic" || echo "SonarQube analysis skipped"
+                        -Dsonar.projectName=spring-petclinic || echo "SonarQube analysis skipped"
                 '''
             }
         }
@@ -72,7 +90,7 @@ pipeline {
                         -v "${WORKSPACE}":/app \
                         -w /app \
                         maven-java25:latest \
-                        bash -c "chmod +x /app/mvnw && /app/mvnw package -DskipTests -q"
+                        ./mvnw package -DskipTests -q
                 '''
             }
             post {
