@@ -1,0 +1,23 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<org.jenkinsci.plugins.prometheus.config.PrometheusConfiguration plugin="prometheus@819.v50953a_c560dd">
+  <urlName>prometheus</urlName>
+  <additionalPath></additionalPath>
+  <defaultNamespace>default</defaultNamespace>
+  <jobAttributeName>jenkins_job</jobAttributeName>
+  <useAuthenticatedEndpoint>false</useAuthenticatedEndpoint>
+  <collectingMetricsPeriodInSeconds>120</collectingMetricsPeriodInSeconds>
+  <countSuccessfulBuilds>true</countSuccessfulBuilds>
+  <countUnstableBuilds>true</countUnstableBuilds>
+  <countFailedBuilds>true</countFailedBuilds>
+  <countNotBuiltBuilds>true</countNotBuiltBuilds>
+  <countAbortedBuilds>true</countAbortedBuilds>
+  <fetchTestResults>true</fetchTestResults>
+  <processingDisabledBuilds>false</processingDisabledBuilds>
+  <appendParamLabel>false</appendParamLabel>
+  <appendStatusLabel>false</appendStatusLabel>
+  <perBuildMetrics>false</perBuildMetrics>
+  <labeledBuildParameterNames></labeledBuildParameterNames>
+  <collectDiskUsage>true</collectDiskUsage>
+  <collectCodeCoverage>false</collectCodeCoverage>
+  <collectNodeStatus>true</collectNodeStatus>
+</org.jenkinsci.plugins.prometheus.config.PrometheusConfiguration>
