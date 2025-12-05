@@ -5,108 +5,74 @@ pipeline {
         skipDefaultCheckout()
     }
 
-    triggers {
-        pollSCM('* * * * *')
-    }
-
-    environment {
-        SONAR_HOST = 'http://sonarqube:9000'
-        DOCKER_NETWORK = 'spring-petclinic_devops-net'
+    environments {
+        DOCKER_NETWORK = "spring-petclinic_devops-net"
+        SONAR_HOST = "http://sonarqube:9000"
     }
 
     stages {
-        stage('Checkout') {
+
+        stage("Checkout") {
             steps {
                 checkout scm
-                sh "echo 'Checked out project into WORKSPACE = ${WORKSPACE}'"
-                sh "ls -la ${WORKSPACE}"
+                sh "ls -la"
             }
         }
 
-        stage('Prepare mvnw') {
+        stage("Build") {
+            agent {
+                docker {
+                    image 'maven-java25:latest'
+                    args "-u root --network ${DOCKER_NETWORK}"
+                }
+            }
             steps {
-                sh '''
-                    echo "Fixing mvnw permissions..."
-                    cd ${WORKSPACE}
-
-                    ls -la mvnw || echo "mvnw missing!"
-
-                    chmod +x mvnw || true
-
-                    command -v dos2unix && dos2unix mvnw || true
-
-                    echo "mvnw ready."
-                '''
+                sh "./mvnw clean compile -DskipTests"
             }
         }
 
-        stage('DEBUG') {
-            steps {
-                sh '''
-                    echo "WORKSPACE = ${WORKSPACE}"
-                    ls -la ${WORKSPACE}
-                '''
+        stage("Test") {
+            agent {
+                docker {
+                    image 'maven-java25:latest'
+                    args "-u root --network ${DOCKER_NETWORK}"
+                }
             }
-        }
-
-        stage('Build') {
             steps {
-                sh '''
-                    docker run --rm \
-                        --network ${DOCKER_NETWORK} \
-                        -v ${WORKSPACE}:/app \
-                        -w /app \
-                        maven-java25:latest \
-                        ./mvnw clean compile -DskipTests -q
-                '''
-            }
-        }
-
-        stage('Test') {
-            steps {
-                sh '''
-                    docker run --rm \
-                        --network ${DOCKER_NETWORK} \
-                        -v ${WORKSPACE}:/app \
-                        -w /app \
-                        maven-java25:latest \
-                        ./mvnw test -Dtest="!PostgresIntegrationTests" -q
-                '''
+                sh "./mvnw test -Dtest=\"!PostgresIntegrationTests\""
             }
             post {
                 always {
-                    junit testResults: '**/target/surefire-reports/*.xml', allowEmptyResults: true
+                    junit '**/target/surefire-reports/*.xml'
                 }
             }
         }
 
-        stage('SonarQube Analysis') {
+        stage("SonarQube Analysis") {
+            agent {
+                docker {
+                    image 'maven-java25:latest'
+                    args "-u root --network ${DOCKER_NETWORK}"
+                }
+            }
             steps {
-                sh '''
-                    docker run --rm \
-                        --network ${DOCKER_NETWORK} \
-                        -v ${WORKSPACE}:/app \
-                        -w /app \
-                        maven-java25:latest \
-                        ./mvnw sonar:sonar \
-                        -Dsonar.host.url=${SONAR_HOST} \
-                        -Dsonar.projectKey=spring-petclinic \
-                        -Dsonar.projectName=spring-petclinic \
-                        || echo "Sonar analysis skipped"
-                '''
+                sh """
+                    ./mvnw sonar:sonar \
+                    -Dsonar.host.url=${SONAR_HOST} \
+                    -Dsonar.projectKey=spring-petclinic
+                """
             }
         }
 
-        stage('Package') {
+        stage("Package") {
+            agent {
+                docker {
+                    image 'maven-java25:latest'
+                    args "-u root --network ${DOCKER_NETWORK}"
+                }
+            }
             steps {
-                sh '''
-                    docker run --rm \
-                        --network ${DOCKER_NETWORK} \
-                        -v ${WORKSPACE}:/app \
-                        -w /app \
-                        maven-java25:latest \
-                        ./mvnw package -DskipTests -q
-                '''
+                sh "./mvnw package -DskipTests"
             }
             post {
                 success {
@@ -115,51 +81,20 @@ pipeline {
             }
         }
 
-        stage('OWASP ZAP Scan') {
+        stage("Deploy") {
             steps {
-                sh '''
-                    mkdir -p ${WORKSPACE}/zap-reports
-                    docker exec zap zap-baseline.py \
-                        -t http://petclinic:8080 \
-                        -r zap-report.html \
-                        -I || true
-                    docker cp zap:/zap/wrk/zap-report.html ${WORKSPACE}/zap-reports/ || true
-                '''
-            }
-            post {
-                always {
-                    publishHTML(target: [
-                        allowMissing: true,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: 'zap-reports',
-                        reportFiles: 'zap-report.html',
-                        reportName: 'OWASP ZAP Report'
-                    ])
-                }
-            }
-        }
+                sh """
+                docker stop petclinic || true
+                docker rm petclinic || true
 
-        stage('Deploy to Production') {
-            steps {
-                sh '''
-                    echo "Deploying to production server..."
-                    
-                    # Stop existing petclinic container
-                    docker stop petclinic || true
-                    docker rm petclinic || true
+                docker build -t petclinic:latest -f Dockerfile .
 
-                    docker build -t petclinic:latest -f Dockerfile ${WORKSPACE}
-
-                    docker run -d \
-                        --name petclinic \
-                        --network ${DOCKER_NETWORK} \
-                        -p 8081:8080 \
-                        petclinic:latest
-
-                    sleep 30
-                    curl -s http://localhost:8081 | head -20 || echo "App not ready yet"
-                '''
+                docker run -d \
+                    --name petclinic \
+                    --network ${DOCKER_NETWORK} \
+                    -p 8081:8080 \
+                    petclinic:latest
+                """
             }
         }
     }
