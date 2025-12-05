@@ -55,22 +55,21 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
+            agent {
+                docker {
+                    image 'maven-java25:latest'
+                    args "--network ${DOCKER_NETWORK}"
+                    reuseNode true
+                }
+            }
             steps {
                 script {
                     withSonarQubeEnv('SonarQubeServer') {
                         sh '''
-                            docker run --rm \
-                                --network ${DOCKER_NETWORK} \
-                                -v jenkins_home:/var/jenkins_home \
-                                -w ${WORKSPACE} \
-                                -e SONAR_HOST_URL=${SONAR_HOST_URL} \
-                                -e SONAR_TOKEN=${SONAR_TOKEN} \
-                                maven-java25:latest \
-                                bash -c "chmod +x ./mvnw && ./mvnw sonar:sonar \
-                                    -Dsonar.host.url=${SONAR_HOST_URL} \
-                                    -Dsonar.login=${SONAR_TOKEN} \
-                                    -Dsonar.projectKey=spring-petclinic \
-                                    -Dsonar.projectName=spring-petclinic" || echo "SonarQube analysis failed, continuing..."
+                            chmod +x ./mvnw
+                            ./mvnw sonar:sonar \
+                                -Dsonar.projectKey=spring-petclinic \
+                                -Dsonar.projectName=spring-petclinic || echo "SonarQube analysis failed, continuing..."
                         '''
                     }
                 }
