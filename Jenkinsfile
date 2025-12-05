@@ -8,6 +8,8 @@ pipeline {
     environment {
         DOCKER_NETWORK = "spring-petclinic_devops-net"
         SONAR_HOST = "http://sonarqube:9000"
+
+        SONAR_TOKEN = credentials('SONAR_TOKEN')  
     }
 
     stages {
@@ -57,9 +59,16 @@ pipeline {
             }
             steps {
                 sh """
-                    ./mvnw sonar:sonar \
-                    -Dsonar.host.url=${SONAR_HOST} \
-                    -Dsonar.projectKey=spring-petclinic
+                    docker run --rm \
+                        --network ${DOCKER_NETWORK} \
+                        -v ${WORKSPACE}:/app \
+                        -w /app \
+                        maven-java25:latest \
+                        ./mvnw sonar:sonar \
+                        -Dsonar.host.url=${SONAR_HOST} \
+                        -Dsonar.login=${SONAR_TOKEN} \
+                        -Dsonar.projectKey=spring-petclinic \
+                        -Dsonar.projectName=spring-petclinic
                 """
             }
         }
