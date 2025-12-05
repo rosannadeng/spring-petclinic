@@ -18,27 +18,33 @@ pipeline {
         }
 
         stage('Build') {
+            agent {
+                docker {
+                    image 'maven-java25:latest'
+                    args "--network ${DOCKER_NETWORK}"
+                    reuseNode true
+                }
+            }
             steps {
                 sh '''
-                    docker run --rm \
-                        --network ${DOCKER_NETWORK} \
-                        -v "${WORKSPACE}":/app \
-                        -w /app \
-                        maven-java25:latest \
-                        ./mvnw clean compile -DskipTests -q
+                    chmod +x ./mvnw
+                    ./mvnw clean compile -DskipTests -q
                 '''
             }
         }
 
         stage('Test') {
+            agent {
+                docker {
+                    image 'maven-java25:latest'
+                    args "--network ${DOCKER_NETWORK}"
+                    reuseNode true
+                }
+            }
             steps {
                 sh '''
-                    docker run --rm \
-                        --network ${DOCKER_NETWORK} \
-                        -v "${WORKSPACE}":/app \
-                        -w /app \
-                        maven-java25:latest \
-                        ./mvnw test -Dtest="!PostgresIntegrationTests" -q
+                    chmod +x ./mvnw
+                    ./mvnw test -Dtest="!PostgresIntegrationTests" -q
                 '''
             }
             post {
@@ -49,30 +55,39 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
+            agent {
+                docker {
+                    image 'maven-java25:latest'
+                    args "--network ${DOCKER_NETWORK}"
+                    reuseNode true
+                }
+            }
             steps {
-                sh '''
-                    docker run --rm \
-                        --network ${DOCKER_NETWORK} \
-                        -v "${WORKSPACE}":/app \
-                        -w /app \
-                        maven-java25:latest \
+                withSonarQubeEnv('SonarQubeServer') {
+                    sh """
+                        chmod +x ./mvnw
                         ./mvnw sonar:sonar \
-                        -Dsonar.host.url=${SONAR_HOST} \
+                        -Dsonar.host.url=${SONAR_HOST_URL} \
+                        -Dsonar.login=${SONAR_AUTH_TOKEN} \
                         -Dsonar.projectKey=spring-petclinic \
-                        -Dsonar.projectName=spring-petclinic || echo "SonarQube analysis skipped"
-                '''
+                        -Dsonar.projectName=spring-petclinic
+                    """
+                }
             }
         }
 
         stage('Package') {
+            agent {
+                docker {
+                    image 'maven-java25:latest'
+                    args "--network ${DOCKER_NETWORK}"
+                    reuseNode true
+                }
+            }
             steps {
                 sh '''
-                    docker run --rm \
-                        --network ${DOCKER_NETWORK} \
-                        -v "${WORKSPACE}":/app \
-                        -w /app \
-                        maven-java25:latest \
-                        ./mvnw package -DskipTests -q
+                    chmod +x ./mvnw
+                    ./mvnw package -DskipTests -q
                 '''
             }
             post {
