@@ -25,7 +25,7 @@ pipeline {
                         -v "${WORKSPACE}":/app \
                         -w /app \
                         maven-java25:latest \
-                        ./mvnw clean compile -DskipTests -q
+                        bash -c "chmod +x /app/mvnw && /app/mvnw clean compile -DskipTests -q"
                 '''
             }
         }
