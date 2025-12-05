@@ -149,11 +149,11 @@ pipeline {
                     
                     # Test basic network connectivity first
                     echo "Testing network connectivity to VM..."
-                    ping -c 3 192.168.1.185 || echo "Warning: Ping failed, but SSH might still work"
+                    ping -c 3 192.168.66.2 || echo "Warning: Ping failed, but SSH might still work"
                     
                     # Test SSH connectivity directly
                     echo "Testing SSH connection..."
-                    timeout 10 ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -i /var/jenkins_home/.ssh/id_rsa ubuntu@192.168.1.185 "echo SSH connection successful" || {
+                    timeout 10 ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no -i /var/jenkins_home/.ssh/id_rsa ubuntu@192.168.66.2 "echo SSH connection successful" || {
                         echo "ERROR: Direct SSH test failed"
                         echo "Please check: 1) VM is running 2) SSH service is up 3) Network connectivity"
                     }
@@ -171,8 +171,8 @@ pipeline {
                     ansible-playbook -i inventory/hosts deploy.yml
                     
                     # Verify deployment on remote server
-                    echo "✓ Application deployed to production VM at 192.168.1.185:8080"
-                    echo "Access the application at: 192.168.1.185:8080"
+                    echo "✓ Application deployed to production VM at 192.168.66.2:8080"
+                    echo "Access the application at: 192.168.66.2:8080"
                 '''
             }
         }

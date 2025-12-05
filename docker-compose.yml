@@ -20,7 +20,7 @@ services:
     networks:
       - devops-net
     extra_hosts:
-      - "production-vm:192.168.1.185"
+      - "production-vm:192.168.66.2"
     depends_on:
       - sonarqube
   postgres:
