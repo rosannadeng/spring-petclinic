@@ -84,19 +84,6 @@ services:
     image: ghcr.io/zaproxy/zaproxy:stable
     platform: linux/amd64
     container_name: zap
-    command:
-      [
-        "zap.sh",
-        "-daemon",
-        "-host",
-        "0.0.0.0",
-        "-port",
-        "8083",
-        "-config",
-        "api.disablekey=true",
-      ]
-    ports:
-      - "8083:8081"
     volumes:
       - ./zap/wrk:/zap/wrk
     networks:
