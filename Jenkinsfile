@@ -153,7 +153,7 @@ pipeline {
                     
                     # Verify deployment on remote server
                     echo "✓ Application deployed to production VM at 192.168.1.185:8080"
-                    echo "Access the application at: http://192.168.1.185:8080"
+                    echo "Access the application at: 192.168.1.185:8080"
                 '''
             }
         }
