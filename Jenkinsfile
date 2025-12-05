@@ -17,6 +17,17 @@ pipeline {
             }
         }
 
+        stage('DEBUG') {
+            steps {
+                sh '''
+                    echo "JOB_NAME = ${JOB_NAME}"
+                    echo "WORKSPACE = ${WORKSPACE}"
+                    echo "Listing workspace contents:"
+                    ls -la ${WORKSPACE}
+                '''
+            }
+        }
+
         stage('Build') {
             steps {
                 sh '''
