@@ -38,6 +38,19 @@ pipeline {
         stage('Build') {
             steps {
                 sh '''
+                    echo "DEBUG: Workspace path is: ${WORKSPACE}"
+                    echo "DEBUG: Files in workspace:"
+                    ls -la ${WORKSPACE} | head -20
+                    
+                    echo "DEBUG: Checking what's inside the Docker container:"
+                    docker run --rm \
+                        --network ${DOCKER_NETWORK} \
+                        -v "${WORKSPACE}":/app \
+                        -w /app \
+                        maven-java25:latest \
+                        bash -c "echo 'Container /app contents:' && ls -la /app | head -20 && echo 'mvnw file check:' && ls -l /app/mvnw"
+                    
+                    echo "DEBUG: Now running actual build:"
                     docker run --rm \
                         --network ${DOCKER_NETWORK} \
                         -v "${WORKSPACE}":/app \
