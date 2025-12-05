@@ -22,7 +22,7 @@ pipeline {
                 sh '''
                     docker run --rm \
                         --network ${DOCKER_NETWORK} \
-                        -v /var/jenkins_home/workspace/${JOB_NAME}:/app
+                        -v /var/jenkins_home/workspace/${JOB_NAME}:/app \
                         -w /app \
                         maven-java25:latest \
                         ./mvnw clean compile -DskipTests -q
