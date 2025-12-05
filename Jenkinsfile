@@ -17,21 +17,33 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                dir("${WORKSPACE}") {
-                    checkout scm
-                }
-                sh "echo 'Checked out project into ${WORKSPACE}:'"
+                checkout scm
+                sh "echo 'Checked out project into WORKSPACE = ${WORKSPACE}'"
                 sh "ls -la ${WORKSPACE}"
             }
         }
 
+        stage('Prepare mvnw') {
+            steps {
+                sh '''
+                    echo "Fixing mvnw permissions..."
+                    cd ${WORKSPACE}
+
+                    ls -la mvnw || echo "mvnw missing!"
+
+                    chmod +x mvnw || true
+
+                    command -v dos2unix && dos2unix mvnw || true
+
+                    echo "mvnw ready."
+                '''
+            }
+        }
 
         stage('DEBUG') {
             steps {
                 sh '''
-                    echo "JOB_NAME = ${JOB_NAME}"
                     echo "WORKSPACE = ${WORKSPACE}"
-                    echo "Listing workspace contents:"
                     ls -la ${WORKSPACE}
                 '''
             }
@@ -79,7 +91,8 @@ pipeline {
                         ./mvnw sonar:sonar \
                         -Dsonar.host.url=${SONAR_HOST} \
                         -Dsonar.projectKey=spring-petclinic \
-                        -Dsonar.projectName=spring-petclinic || echo "SonarQube analysis skipped"
+                        -Dsonar.projectName=spring-petclinic \
+                        || echo "Sonar analysis skipped"
                 '''
             }
         }
@@ -135,22 +148,17 @@ pipeline {
                     # Stop existing petclinic container
                     docker stop petclinic || true
                     docker rm petclinic || true
-                    
-                    # Build new image with updated JAR
+
                     docker build -t petclinic:latest -f Dockerfile ${WORKSPACE}
-                    
-                    # Start new container
+
                     docker run -d \
                         --name petclinic \
                         --network ${DOCKER_NETWORK} \
                         -p 8081:8080 \
                         petclinic:latest
-                    
-                    # Wait for application to start
+
                     sleep 30
-                    
-                    # Verify deployment
-                    curl -s http://localhost:8081 | head -20 || echo "Deployment verification pending"
+                    curl -s http://localhost:8081 | head -20 || echo "App not ready yet"
                 '''
             }
         }
