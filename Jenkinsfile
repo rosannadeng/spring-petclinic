@@ -17,7 +17,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                dir("${WORKSPACE}/app") {
+                dir("${WORKSPACE}") {
                     checkout scm
                 }
                 sh "echo 'Checked out project into ${WORKSPACE}/app:'"
