@@ -97,7 +97,7 @@ services:
       - "8081:8080"
     networks:
       - devops-net
-
+      
   maven-java25:
     build:
       context: .

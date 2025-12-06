@@ -19,14 +19,12 @@ package org.springframework.samples.petclinic.system;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
-import java.time.LocalDateTime;
-
 @Controller
 class WelcomeController {
 
 	@GetMapping("/")
 	public String welcome() {
-		return "welcome this site is deployed on " + java.time.LocalDateTime.now().toString();
+		return "welcome";
 	}
 
 }
