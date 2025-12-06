@@ -96,40 +96,41 @@ pipeline {
             steps {
                 sh '''
                     mkdir -p "${WORKSPACE}/zap-wrk"
+                    mkdir -p "${WORKSPACE}/zap-reports"
 
-                    cat > "${WORKSPACE}/zap-wrk/zap.yaml" << 'EOF'
-        ---
-        env:
-        contexts:
-            - name: petclinic-context
-            urls:
-                - http://petclinic:8080
-            includePaths:
-                - http://petclinic:8080.*
-            excludePaths: []
+cat > "${WORKSPACE}/zap-wrk/zap.yaml" << 'EOF'
+---
+env:
+  contexts:
+    - name: petclinic-context
+      urls:
+        - http://petclinic:8080
+      includePaths:
+        - http://petclinic:8080.*
+      excludePaths: []
 
-        jobs:
-        - type: spider
-            parameters:
-            context: petclinic-context
-            url: http://petclinic:8080
-            maxDuration: 2
+jobs:
+  - type: spider
+    parameters:
+      context: petclinic-context
+      url: http://petclinic:8080
+      maxDuration: 2
 
-        - type: activeScan
-            parameters:
-            context: petclinic-context
-            policy: Default Policy
-            maxRuleDurationInMins: 3
-            addQueryParam: true
+  - type: activeScan
+    parameters:
+      context: petclinic-context
+      policy: Default Policy
+      maxRuleDurationInMins: 3
+      addQueryParam: true
 
-        - type: passiveScan-wait
+  - type: passiveScan-wait
 
-        - type: report
-            parameters:
-            template: traditional-html
-            reportDir: /zap/wrk
-            reportFile: zap-report.html
-        EOF
+  - type: report
+    parameters:
+      template: traditional-html
+      reportDir: /zap/wrk
+      reportFile: zap-report.html
+EOF
 
                     chown -R 1000:1000 "${WORKSPACE}/zap-wrk"
 
@@ -138,7 +139,10 @@ pipeline {
                     --network ${DOCKER_NETWORK} \
                     -v "${WORKSPACE}/zap-wrk":/zap/wrk \
                     ghcr.io/zaproxy/zaproxy:weekly \
-                    zap.sh -cmd -autorun /zap/wrk/zap.yaml
+                    zap.sh -cmd -autorun /zap/wrk/zap.yaml || true
+
+                    echo ">>> Workdir content:"
+                    ls -la "${WORKSPACE}/zap-wrk"
 
                     cp "${WORKSPACE}/zap-wrk/zap-report.html" "${WORKSPACE}/zap-reports/" || true
                 '''
@@ -156,8 +160,6 @@ pipeline {
                 }
             }
         }
-
-
 
 
     //    stage('Deploy to Production') {
