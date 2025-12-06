@@ -106,7 +106,7 @@ docker run --rm \
   --network ${DOCKER_NETWORK} \
   --user 0 \
   -v "${WORKSPACE}/zap-reports":/zap/wrk:rw \
-  ghcr.io/zaproxy/zaproxy:weekly \
+  ghcr.io/zaproxy/zaproxy:stable \
   zap-baseline.py \
       -t http://petclinic:8080 \
       -r zap-report.html \
@@ -116,6 +116,13 @@ docker run --rm \
 
 echo "=== ZAP report directory ==="
 ls -la "${WORKSPACE}/zap-reports"
+
+echo "=== Check if reports exist ==="
+if [ -f "${WORKSPACE}/zap-reports/zap-report.html" ]; then
+    echo "HTML report found!"
+else
+    echo "HTML report NOT found!"
+fi
 
                 '''
             }
