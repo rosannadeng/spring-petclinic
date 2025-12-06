@@ -102,17 +102,14 @@ pipeline {
                     echo "=== Running OWASP ZAP Baseline Scan ==="
                     
                     # Run ZAP in a named container (create temp volume for /zap/wrk)
+                    # Use --user root to avoid permission issues with Docker volumes
                     docker run --name zap-scan-${BUILD_NUMBER} \
                       --platform linux/amd64 \
                       --network ${DOCKER_NETWORK} \
+                      --user root \
                       -v zap-reports-${BUILD_NUMBER}:/zap/wrk \
                       ghcr.io/zaproxy/zaproxy:stable \
-                      zap-baseline.py \
-                        -t http://petclinic:8080 \
-                        -r zap-report.html \
-                        -w zap-report.md \
-                        -x zap-report.xml \
-                        -I || true
+                      bash -c "chown -R zap:zap /zap/wrk && su zap -c 'zap-baseline.py -t http://petclinic:8080 -r zap-report.html -w zap-report.md -x zap-report.xml -I'" || true
                     
                     echo ""
                     echo "=== Copying reports from container ==="
