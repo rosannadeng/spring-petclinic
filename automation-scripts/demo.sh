@@ -6,6 +6,8 @@ echo "Starting DevSecOps Pipeline Demo..."
 echo ""
 
 echo "[1/7] Starting Docker services..."
+docker stop petclinic 2>/dev/null
+docker rm petclinic 2>/dev/null
 docker compose down 2>/dev/null
 docker compose up -d
 echo "Waiting 20 seconds for services..."
@@ -30,7 +32,8 @@ echo "[4/7] Building..."
 docker run --rm -v "$(pwd)":/app -w /app maven-java25:latest ./mvnw package -DskipTests -q 2>&1 | tail -1
 
 echo "[5/7] Deploying to container..."
-docker stop petclinic 2>/dev/null; docker rm petclinic 2>/dev/null
+docker stop petclinic 2>/dev/null
+docker rm petclinic 2>/dev/null
 docker build -t petclinic:latest . >/dev/null 2>&1
 docker run -d --name petclinic --network spring-petclinic_devops-net -p 8081:8080 petclinic:latest >/dev/null
 echo "Waiting 15 seconds for app..."
