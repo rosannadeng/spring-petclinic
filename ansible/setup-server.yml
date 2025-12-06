@@ -1,0 +1,48 @@
+---
+- name: Setup Production Server for Spring Boot Application
+  hosts: production
+  become: yes
+  vars:
+    java_version: "17"
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install OpenJDK {{ java_version }}
+      apt:
+        name: "openjdk-{{ java_version }}-jdk"
+        state: present
+
+    - name: Verify Java installation
+      command: java -version
+      register: java_check
+      changed_when: false
+
+    - name: Display Java version
+      debug:
+        msg: "{{ java_check.stderr_lines }}"
+
+    - name: Create petclinic deployment directory
+      file:
+        path: /home/ubuntu/petclinic
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: "0755"
+
+    - name: Check if firewall allows port 8080
+      shell: |
+        if command -v ufw &> /dev/null; then
+          ufw status | grep 8080 || echo "not configured"
+        else
+          echo "ufw not installed"
+        fi
+      register: firewall_check
+      changed_when: false
+
+    - name: Display firewall status
+      debug:
+        msg: "Firewall status for port 8080: {{ firewall_check.stdout }}"

@@ -1,0 +1,32 @@
+---
+env:
+  contexts:
+    - name: petclinic-context
+      urls:
+        - http://petclinic:8080
+      includePaths:
+        - http://petclinic:8080.*
+      excludePaths: []
+
+jobs:
+  - type: spider
+    parameters:
+      context: petclinic-context
+      url: http://petclinic:8080
+      maxDuration: 2
+
+  - type: activeScan
+    parameters:
+      context: petclinic-context
+      policy: Default Policy
+      maxRuleDurationInMins: 3
+      addQueryParam: true
+
+  - type: passiveScan-wait
+
+  - type: report
+    parameters:
+      template: traditional-html
+      reportDir: /zap/wrk
+      reportFile: zap-report.html
+

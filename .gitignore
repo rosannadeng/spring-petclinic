@@ -49,3 +49,5 @@ _site/
 
 .env
 .env.locallog.txt
+
+jenkins_home/

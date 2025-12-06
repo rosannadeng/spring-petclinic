@@ -1,6 +1,17 @@
 jenkins:
   systemMessage: "Automated Jenkins via JCasC"
 
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          password: "admin"
+
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
   nodes:
     - permanent:
         name: "master"
@@ -37,4 +48,3 @@ tool:
     installations:
       - name: "JDK 25"
         home: "/usr/lib/jvm/jdk-25"
-

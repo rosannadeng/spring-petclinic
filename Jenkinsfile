@@ -17,54 +17,134 @@ pipeline {
         }
 
         stage('Build') {
-            options {
-                timeout(time: 5, unit: 'MINUTES')
+            agent {
+                docker {
+                    image 'maven-java25:latest'
+                    args "--network ${DOCKER_NETWORK}"
+                    reuseNode true
+                }
             }
             steps {
-                sh 'docker cp . maven-java25-builder:/build'
-                sh 'docker exec maven-java25-builder chmod +x /build/mvnw'
-                sh 'docker exec -w /build maven-java25-builder ./mvnw clean compile -DskipTests -B'
+                sh '''
+                    chmod +x ./mvnw
+                    ./mvnw clean compile -DskipTests -q
+                '''
             }
         }
 
         stage('Test') {
-            options {
-                timeout(time: 5, unit: 'MINUTES')
+            agent {
+                docker {
+                    image 'maven-java25:latest'
+                    args "--network ${DOCKER_NETWORK}"
+                    reuseNode true
+                }
             }
             steps {
-                sh 'docker exec -w /build maven-java25-builder ./mvnw test -Dtest=!PostgresIntegrationTests,!MySqlIntegrationTests -DfailIfNoTests=false -B || true'
+                sh '''
+                    chmod +x ./mvnw
+                    ./mvnw test -Dtest="!PostgresIntegrationTests" -q
+                '''
             }
         }
 
         stage('SonarQube Analysis') {
-            options {
-                timeout(time: 3, unit: 'MINUTES')
+            agent {
+                docker {
+                    image 'maven-java25:latest'
+                    args "--network ${DOCKER_NETWORK}"
+                    reuseNode true
+                }
             }
             steps {
-                sh 'docker exec -w /build maven-java25-builder ./mvnw sonar:sonar -Dsonar.host.url=http://sonarqube:9000 -Dsonar.projectKey=spring-petclinic -B || true'
+                script {
+                    withSonarQubeEnv('SonarQubeServer') {
+                        sh '''
+                            chmod +x ./mvnw
+                            ./mvnw sonar:sonar \
+                                -Dsonar.projectKey=spring-petclinic \
+                                -Dsonar.projectName=spring-petclinic || echo "SonarQube analysis failed, continuing..."
+                        '''
+                    }
+                }
             }
         }
 
         stage('Package') {
+            agent {
+                docker {
+                    image 'maven-java25:latest'
+                    args "--network ${DOCKER_NETWORK}"
+                    reuseNode true
+                }
+            }
             steps {
-                sh 'docker exec -w /build maven-java25-builder ./mvnw package -DskipTests -B'
+                sh '''
+                    chmod +x ./mvnw
+                    ./mvnw package -DskipTests -q
+                '''
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                }
             }
         }
 
-        stage('OWASP ZAP Scan') {
+        stage('OWASP ZAP Baseline Scan') {
             steps {
-                sh 'docker exec zap zap-baseline.py -t http://petclinic:8080 -r /zap/wrk/zap-report.html -I || true'
+                sh '''
+                    mkdir -p "${WORKSPACE}/zap-reports"
+                    # Run ZAP scan in container with temporary volume
+                    docker run --name zap-scan-${BUILD_NUMBER} \
+                      --platform linux/amd64 \
+                      --network ${DOCKER_NETWORK} \
+                      --user root \
+                      -v zap-reports-${BUILD_NUMBER}:/zap/wrk \
+                      ghcr.io/zaproxy/zaproxy:stable \
+                      bash -c "chown -R zap:zap /zap/wrk && su zap -c 'zap-baseline.py -t http://petclinic:8080 -r zap-report.html -w zap-report.md -x zap-report.xml -I'" || true
+                    
+                    # Copy reports from container to Jenkins workspace
+                    docker cp zap-scan-${BUILD_NUMBER}:/zap/wrk/zap-report.html "${WORKSPACE}/zap-reports/" 2>/dev/null || true
+                    docker cp zap-scan-${BUILD_NUMBER}:/zap/wrk/zap-report.md "${WORKSPACE}/zap-reports/" 2>/dev/null || true
+                    docker cp zap-scan-${BUILD_NUMBER}:/zap/wrk/zap-report.xml "${WORKSPACE}/zap-reports/" 2>/dev/null || true
+                    
+                    # Cleanup
+                    docker rm -f zap-scan-${BUILD_NUMBER} 2>/dev/null || true
+                    docker volume rm zap-reports-${BUILD_NUMBER} 2>/dev/null || true
+                '''
+            }
+            post {
+                always {
+                    publishHTML(target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'zap-reports',
+                        reportFiles: 'zap-report.html',
+                        reportName: 'OWASP ZAP Report'
+                    ])
+                }
             }
         }
 
-        stage('Deploy to Production') {
+       stage('Deploy to Production') {
             steps {
-                sh 'docker stop petclinic || true'
-                sh 'docker rm petclinic || true'
-                sh 'docker exec maven-java25-builder cp /build/target/spring-petclinic-*.jar /build/app.jar || true'
-                sh 'docker cp maven-java25-builder:/build/target/spring-petclinic-4.0.0-SNAPSHOT.jar ./app.jar || true'
-                sh 'docker build -t petclinic:latest . || true'
-                sh 'docker run -d --name petclinic --network spring-petclinic_devops-net -p 8081:8080 petclinic:latest'
+                sh '''
+                    export ANSIBLE_HOST_KEY_CHECKING=False
+                    export ANSIBLE_SSH_ARGS="-o ConnectTimeout=30 -o ConnectionAttempts=3"
+
+                    # Ensure SSH key permissions
+                    chmod 600 /var/jenkins_home/.ssh/id_rsa
+                    chmod 700 /var/jenkins_home/.ssh
+
+                    # Move into Ansible directory
+                    cd ${WORKSPACE}/ansible
+
+                    # Run playbook (Ansible will fail naturally if SSH/inventory is wrong)
+                    ansible-playbook -i inventory/hosts deploy.yml
+                    echo "Deployment complete!"
+                '''
             }
         }
     }
