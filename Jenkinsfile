@@ -104,6 +104,7 @@ pipeline {
                     ZAP_WORKDIR="${WORKSPACE}/zap-wrk"
                     mkdir -p "${WORKSPACE}/zap-reports" "${ZAP_WORKDIR}"
                     chmod -R 777 "${ZAP_WORKDIR}" "${WORKSPACE}/zap-reports" || true
+                    chown -R 1000:1000 "${ZAP_WORKDIR}" "${WORKSPACE}/zap-reports" 2>/dev/null || true
 
                     echo "Waiting for petclinic to be ready for scanning..."
                     for i in {1..30}; do
@@ -119,6 +120,7 @@ pipeline {
                     rm -f "${ZAP_WORKDIR}/zap-report.html" "${ZAP_WORKDIR}/zap_out.json"
                     docker run --rm \
                         --network ${DOCKER_NETWORK} \
+                        -u 0 \
                         -v "${ZAP_WORKDIR}":/zap/wrk \
                         ghcr.io/zaproxy/zaproxy:stable \
                         zap-baseline.py \
