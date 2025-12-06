@@ -618,6 +618,8 @@ save and name it correctly
 
 great you now have a dashboard.
 
+Below is the grafana and the prometheus build proof
+
 ![Grafana Fail Build 1](SCREENSHOTS/ReadMeScreenshots/Grafana_jenkins_Fail_Build_project1.png)
 ![Grafana Fail Build 2](SCREENSHOTS/ReadMeScreenshots/Grafana_jenkins_Fail_Build_project2(code).png)
 ![Grafana Pass Build 1](SCREENSHOTS/ReadMeScreenshots/Grafana_jenkins_Pass_Build_project1.png)
@@ -628,6 +630,9 @@ great you now have a dashboard.
 ![Prometheus Jenkins Install](SCREENSHOTS/ReadMeScreenshots/Prometheus_Jenkins_Install.png)
 ![Prometheus SonarQube Up](SCREENSHOTS/ReadMeScreenshots/Prometheus_Jenkins_Sonarqube_Up.png)
 ![Prometheus Jenkins Up](SCREENSHOTS/ReadMeScreenshots/Prometheus_Jenkins_Up.png)
+
+
+
 
 
 # Ansible Deployment Instructions
@@ -959,6 +964,8 @@ Take screenshots showing:
 - Check Jenkins loaded latest Jenkinsfile from Git
 - Restart Jenkins if needed: `docker compose restart jenkins`
 - 
+
+Advanced automated scripting (i.e., fully automated assignment completion) will receive a bonus in the automation scripts
 
 
 
