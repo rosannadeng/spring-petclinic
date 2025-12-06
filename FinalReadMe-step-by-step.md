@@ -39,7 +39,7 @@ https://ubuntu.com/download/server
 > Open your Virtual Machine and click "Create a New Virtual Machine"  
 " what type of configuration do you want? Typical (Recommended)" -> hit next
 "installer disc image file (iso)" -> make sure to select the correct ISO image & hit next
-![InstallerdiscImagefile](image-1.png)
+![InstallerdiscImagefile](SCREENSHOTS/ReadMeScreenshots/image-1.png)
 
 > "virtual Machine name" -> name it whatever you like. make sure your location of the machine is in the correct spot (its wherever on your system your vm files are stores or create a new file in your users folder for your user)
 
