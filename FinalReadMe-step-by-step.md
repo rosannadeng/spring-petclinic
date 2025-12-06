@@ -582,6 +582,54 @@ SonarQube: https://docs.sonarqube.org/
 OWASP ZAP: https://www.zaproxy.org/docs/
 Docker Compose: https://docs.docker.com/compose/
 
+## configure grafana-dashboards
+
+your containers should all be up, but you should still check with sudo docker ps 
+
+if all containers are runnig so to your granfana 
+
+http://yourVmIp:3030
+
+configure your data source
+
+go to 
+![grafana datasources](SCREENSHOTS/ReadMeScreenshots/image-25.png)
+
+then ensure your dashboard can get to your prometheus container using 
+http://prometheus:9090
+
+![alt text](SCREENSHOTS/ReadMeScreenshots/image-26.png)
+
+now do to dashboards by clicking the left hand stack and clicking dashboards 
+
+![DashboardOption2](SCREENSHOTS/ReadMeScreenshots/image-27.png)
+
+or 
+
+![Dashboardoption1](SCREENSHOTS/ReadMeScreenshots/image-28.png)
+
+create new dashboards -> datasourse prometheus 
+
+Click on the add query and then select a metric with one of the proconfigured ones. run quries to see if it works. 
+
+save and name it correctly
+
+![Granfana dashboard](SCREENSHOTS/ReadMeScreenshots/image-29.png)
+
+great you now have a dashboard.
+
+![Grafana Fail Build 1](SCREENSHOTS/ReadMeScreenshots/Grafana_jenkins_Fail_Build_project1.png)
+![Grafana Fail Build 2](SCREENSHOTS/ReadMeScreenshots/Grafana_jenkins_Fail_Build_project2(code).png)
+![Grafana Pass Build 1](SCREENSHOTS/ReadMeScreenshots/Grafana_jenkins_Pass_Build_project1.png)
+![Grafana Pass Build 2](SCREENSHOTS/ReadMeScreenshots/Grafana_jenkins_Pass_Build_project2(Code).png)
+![Grafana Failure Metrics](SCREENSHOTS/ReadMeScreenshots/Grafana_jenkins_totaland_Failue_Build_metrics.png)
+
+![Jenkins Maven Tools](SCREENSHOTS/ReadMeScreenshots/Jenkins_Maven_JDK_Tools.png)
+![Prometheus Jenkins Install](SCREENSHOTS/ReadMeScreenshots/Prometheus_Jenkins_Install.png)
+![Prometheus SonarQube Up](SCREENSHOTS/ReadMeScreenshots/Prometheus_Jenkins_Sonarqube_Up.png)
+![Prometheus Jenkins Up](SCREENSHOTS/ReadMeScreenshots/Prometheus_Jenkins_Up.png)
+
+
 # Ansible Deployment Instructions
 
 ## What We Did
@@ -910,3 +958,7 @@ Take screenshots showing:
 - Verify Jenkinsfile has "Deploy to Production" stage
 - Check Jenkins loaded latest Jenkinsfile from Git
 - Restart Jenkins if needed: `docker compose restart jenkins`
+- 
+
+
+
