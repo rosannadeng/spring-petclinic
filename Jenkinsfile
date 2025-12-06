@@ -109,9 +109,9 @@ docker run --rm \
   ghcr.io/zaproxy/zaproxy:weekly \
   zap-baseline.py \
       -t http://petclinic:8080 \
-      -r /zap/wrk/zap-report.html \
-      -w /zap/wrk/zap-report.md \
-      -x /zap/wrk/zap-report.xml \
+      -r zap-report.html \
+      -w zap-report.md \
+      -x zap-report.xml \
       -I || true
 
 echo "=== ZAP report directory ==="
