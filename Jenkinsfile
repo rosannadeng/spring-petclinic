@@ -103,6 +103,7 @@ pipeline {
                     set +e
                     ZAP_WORKDIR="${WORKSPACE}/zap-wrk"
                     mkdir -p "${WORKSPACE}/zap-reports" "${ZAP_WORKDIR}"
+                    chmod -R 777 "${ZAP_WORKDIR}" "${WORKSPACE}/zap-reports" || true
 
                     echo "Waiting for petclinic to be ready for scanning..."
                     for i in {1..30}; do
