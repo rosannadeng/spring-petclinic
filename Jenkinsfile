@@ -103,15 +103,11 @@ pipeline {
                     chown -R 1000:1000 "${ZAP_WORKDIR}"
 
                     docker run --rm \
-                        --platform linux/amd64 \
-                        --network ${DOCKER_NETWORK} \
-                        -w /zap/wrk \
-                        -v "${ZAP_WORKDIR}":/zap/wrk \
-                        ghcr.io/zaproxy/zaproxy:weekly \
-                        zap-baseline.py \
-                        -t http://petclinic:8080 \
-                        -r zap-report.html \
-                        -I --autooff
+                    --platform linux/amd64 \
+                    --network spring-petclinic_devops-net \
+                    -v "${WORKSPACE}/zap-wrk":/zap/wrk \
+                    ghcr.io/zaproxy/zaproxy:weekly \
+                    zap.sh -cmd -autorun /zap/wrk/zap.yaml
 
                     ZAP_EXIT_CODE=$?
 
