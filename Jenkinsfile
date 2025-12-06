@@ -93,12 +93,18 @@ pipeline {
         // }
 
         stage('OWASP ZAP Scan') {
-            steps {
-                sh '''
-                    mkdir -p "${WORKSPACE}/zap-wrk"
-                    mkdir -p "${WORKSPACE}/zap-reports"
+    steps {
+        sh '''
+            echo "=== Create ZAP Volume ==="
+            docker volume create zapdata || true
 
-cat > "${WORKSPACE}/zap-wrk/zap.yaml" << 'EOF'
+            echo "=== Inject zap.yaml into zapdata volume ==="
+
+            # 将 zap.yaml 写到 volume 里
+            docker run --rm \
+                -v zapdata:/zap/wrk \
+                bash:latest \
+                /bin/bash -c 'cat > /zap/wrk/zap.yaml << "EOF"
 ---
 env:
   contexts:
@@ -131,35 +137,40 @@ jobs:
       reportDir: /zap/wrk
       reportFile: zap-report.html
 EOF
+                '
 
-                    chown -R 1000:1000 "${WORKSPACE}/zap-wrk"
+            echo "=== Running ZAP scan using automation framework ==="
 
-                    docker run --rm \
-                    --platform linux/amd64 \
-                    --network ${DOCKER_NETWORK} \
-                    -v "${WORKSPACE}/zap-wrk":/zap/wrk \
-                    ghcr.io/zaproxy/zaproxy:weekly \
-                    zap.sh -cmd -autorun /zap/wrk/zap.yaml || true
+            docker run --rm \
+                --platform linux/amd64 \
+                --network ${DOCKER_NETWORK} \
+                -v zapdata:/zap/wrk \
+                ghcr.io/zaproxy/zaproxy:weekly \
+                zap.sh -cmd -autorun /zap/wrk/zap.yaml || true
 
-                    echo ">>> Workdir content:"
-                    ls -la "${WORKSPACE}/zap-wrk"
+            echo "=== Copy ZAP report from volume to Jenkins workspace ==="
+            mkdir -p ${WORKSPACE}/zap-reports
 
-                    cp "${WORKSPACE}/zap-wrk/zap-report.html" "${WORKSPACE}/zap-reports/" || true
-                '''
-            }
-            post {
-                always {
-                    publishHTML(target: [
-                        allowMissing: true,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: 'zap-reports',
-                        reportFiles: 'zap-report.html',
-                        reportName: 'OWASP ZAP Report'
-                    ])
-                }
-            }
+            docker run --rm -v zapdata:/zap/wrk -v ${WORKSPACE}/zap-reports:/out \
+                bash:latest \
+                /bin/bash -c 'cp /zap/wrk/zap-report.html /out/zap-report.html || true'
+
+            ls -la ${WORKSPACE}/zap-reports
+        '''
+    }
+    post {
+        always {
+            publishHTML(target: [
+                allowMissing: true,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: 'zap-reports',
+                reportFiles: 'zap-report.html',
+                reportName: 'OWASP ZAP Report'
+            ])
         }
+    }
+}
 
 
     //    stage('Deploy to Production') {

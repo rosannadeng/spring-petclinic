@@ -115,6 +115,7 @@ volumes:
   sonarqube_logs:
   prometheus_data:
   grafana_data:
+  zap_data:
 
 networks:
   devops-net:
