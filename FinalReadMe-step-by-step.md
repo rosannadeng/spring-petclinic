@@ -1,6 +1,6 @@
-# TEAM 3 - Abuzzina, rink, yuxinDen
+# TEAM 3 - Abuzzina, rink, yuxinden
 
-***Video of Deployment*** - https://youtu.be/gFtM1v8k5W8
+***Video of Deployment*** - https://drive.google.com/file/d/1Z9tkHkghXwEcxIVrJ9pMc8EJJTqQNi8I/view?usp=sharing
 
 ## Overview
 > This is our final submission for our final project. This is a small project called spring-clinic that shows what an end-to-end pipeline is like for covering CI/CD in Jenkins, SonarQube, OwaspZap, Promethus, Grafana, and deployment to a production VM Via Ansible. 
