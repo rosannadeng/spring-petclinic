@@ -95,35 +95,35 @@ pipeline {
         stage('OWASP ZAP Baseline Scan') {
             steps {
                 sh '''
-                    echo "=== Prepare report directory owned by ZAP user ==="
-mkdir -p "${WORKSPACE}/zap-reports"
-chmod -R 777 "${WORKSPACE}/zap-reports"
+                    echo "=== Prepare report directory ==="
+                    mkdir -p "${WORKSPACE}/zap-reports"
+                    chmod -R 777 "${WORKSPACE}/zap-reports"
 
-echo "=== Running OWASP ZAP Baseline Scan ==="
+                    echo "=== Running OWASP ZAP Baseline Scan ==="
+                    
+                    docker run --rm \
+                      --platform linux/amd64 \
+                      --network ${DOCKER_NETWORK} \
+                      -v "${WORKSPACE}/zap-reports":/zap/wrk:rw \
+                      -u zap \
+                      -e ZAP_DISABLE_AUTO=true \
+                      ghcr.io/zaproxy/zaproxy:stable \
+                      bash -c "cd /zap/wrk && zap-baseline.py -t http://petclinic:8080 -r ./zap-report.html -w ./zap-report.md -x ./zap-report.xml -I || true"
 
-docker run --rm \
-  --platform linux/amd64 \
-  --network ${DOCKER_NETWORK} \
-  --user 0 \
-  -v "${WORKSPACE}/zap-reports":/zap/wrk:rw \
-  ghcr.io/zaproxy/zaproxy:stable \
-  zap-baseline.py \
-      -t http://petclinic:8080 \
-      -r zap-report.html \
-      -w zap-report.md \
-      -x zap-report.xml \
-      -I || true
-
-echo "=== ZAP report directory ==="
-ls -la "${WORKSPACE}/zap-reports"
-
-echo "=== Check if reports exist ==="
-if [ -f "${WORKSPACE}/zap-reports/zap-report.html" ]; then
-    echo "HTML report found!"
-else
-    echo "HTML report NOT found!"
-fi
-
+                    echo ""
+                    echo "=== ZAP report directory ==="
+                    ls -lah "${WORKSPACE}/zap-reports/"
+                    
+                    echo ""
+                    echo "=== Report status ==="
+                    for file in zap-report.html zap-report.md zap-report.xml; do
+                        if [ -f "${WORKSPACE}/zap-reports/$file" ]; then
+                            size=$(stat -c%s "${WORKSPACE}/zap-reports/$file" 2>/dev/null || stat -f%z "${WORKSPACE}/zap-reports/$file" 2>/dev/null)
+                            echo "✓ $file ($size bytes)"
+                        else
+                            echo "✗ $file NOT found"
+                        fi
+                    done
                 '''
             }
             post {
