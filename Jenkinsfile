@@ -95,20 +95,44 @@ pipeline {
         stage('OWASP ZAP Scan') {
             steps {
                 sh '''
-                    # 创建目录
                     mkdir -p "${WORKSPACE}/zap-wrk"
-                    mkdir -p "${WORKSPACE}/zap-reports"
 
-                    # 将你的 zap.yaml 放到 zap-wrk 中
-                    cp "${WORKSPACE}/zap/zap.yaml" "${WORKSPACE}/zap-wrk/zap.yaml"
+                    cat > "${WORKSPACE}/zap-wrk/zap.yaml" << 'EOF'
+        ---
+        env:
+        contexts:
+            - name: petclinic-context
+            urls:
+                - http://petclinic:8080
+            includePaths:
+                - http://petclinic:8080.*
+            excludePaths: []
 
-                    echo ">>> Jenkins workspace:"
-                    ls -la "${WORKSPACE}/zap-wrk"
+        jobs:
+        - type: spider
+            parameters:
+            context: petclinic-context
+            url: http://petclinic:8080
+            maxDuration: 2
 
-                    # 赋予 ZAP 运行权限
+        - type: activeScan
+            parameters:
+            context: petclinic-context
+            policy: Default Policy
+            maxRuleDurationInMins: 3
+            addQueryParam: true
+
+        - type: passiveScan-wait
+
+        - type: report
+            parameters:
+            template: traditional-html
+            reportDir: /zap/wrk
+            reportFile: zap-report.html
+        EOF
+
                     chown -R 1000:1000 "${WORKSPACE}/zap-wrk"
 
-                    # 正确运行 docker run（关键：使用 Jenkins 容器路径）
                     docker run --rm \
                     --platform linux/amd64 \
                     --network ${DOCKER_NETWORK} \
@@ -116,8 +140,7 @@ pipeline {
                     ghcr.io/zaproxy/zaproxy:weekly \
                     zap.sh -cmd -autorun /zap/wrk/zap.yaml
 
-                    echo ">>> ZAP workdir content after scan:"
-                    ls -la "${WORKSPACE}/zap-wrk"
+                    cp "${WORKSPACE}/zap-wrk/zap-report.html" "${WORKSPACE}/zap-reports/" || true
                 '''
             }
             post {
@@ -126,13 +149,14 @@ pipeline {
                         allowMissing: true,
                         alwaysLinkToLastBuild: true,
                         keepAll: true,
-                        reportDir: 'zap-wrk',
+                        reportDir: 'zap-reports',
                         reportFiles: 'zap-report.html',
                         reportName: 'OWASP ZAP Report'
                     ])
                 }
             }
         }
+
 
 
 
