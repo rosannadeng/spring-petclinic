@@ -92,70 +92,26 @@ pipeline {
         //     }
         // }
 
-        stage('OWASP ZAP Scan') {
+        stage('OWASP ZAP Baseline Scan') {
     steps {
         sh '''
-            echo "=== Create ZAP Volume ==="
-            docker volume create zapdata || true
+            mkdir -p "${WORKSPACE}/zap-reports"
 
-            echo "=== Inject zap.yaml into zapdata volume ==="
-
-            # 将 zap.yaml 写到 volume 里
-            docker run --rm \
-                -v zapdata:/zap/wrk \
-                bash:latest \
-                /bin/bash -c 'cat > /zap/wrk/zap.yaml << "EOF"
----
-env:
-  contexts:
-    - name: petclinic-context
-      urls:
-        - http://petclinic:8080
-      includePaths:
-        - http://petclinic:8080.*
-      excludePaths: []
-
-jobs:
-  - type: spider
-    parameters:
-      context: petclinic-context
-      url: http://petclinic:8080
-      maxDuration: 2
-
-  - type: activeScan
-    parameters:
-      context: petclinic-context
-      policy: Default Policy
-      maxRuleDurationInMins: 3
-      addQueryParam: true
-
-  - type: passiveScan-wait
-
-  - type: report
-    parameters:
-      template: traditional-html
-      reportDir: /zap/wrk
-      reportFile: zap-report.html
-EOF
-                '
-
-            echo "=== Running ZAP scan using automation framework ==="
+            echo "=== Running OWASP ZAP Baseline Scan ==="
 
             docker run --rm \
-                --platform linux/amd64 \
-                --network ${DOCKER_NETWORK} \
-                -v zapdata:/zap/wrk \
-                ghcr.io/zaproxy/zaproxy:weekly \
-                zap.sh -cmd -autorun /zap/wrk/zap.yaml || true
+              --platform linux/amd64 \
+              --network ${DOCKER_NETWORK} \
+              -v "${WORKSPACE}/zap-reports":/zap/wrk \
+              ghcr.io/zaproxy/zaproxy:stable \
+              zap-baseline.py \
+                 -t http://petclinic:8080 \
+                 -r zap-report.html \
+                 -I \
+                 --autooff || true
 
-            echo "=== Copy ZAP report from volume to Jenkins workspace ==="
-            mkdir -p ${WORKSPACE}/zap-reports
-
-            docker run --rm -v zapdata:/zap/wrk -v ${WORKSPACE}/zap-reports:/out \
-                bash:latest \
-                /bin/bash -c 'cp /zap/wrk/zap-report.html /out/zap-report.html || true'
-
-            ls -la ${WORKSPACE}/zap-reports
+            echo "=== ZAP report directory ==="
+            ls -la "${WORKSPACE}/zap-reports"
         '''
     }
     post {
