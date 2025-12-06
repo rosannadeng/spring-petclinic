@@ -16,17 +16,17 @@
 
 package org.springframework.samples.petclinic.system;
 
+import java.time.LocalDateTime;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
-import java.time.LocalDateTime;
 
 @Controller
 class WelcomeController {
 
 	@GetMapping("/")
 	public String welcome() {
-		return "welcome \n" +
-		"this site is deployed on " + java.time.LocalDateTime.now().toString() + "\n";
+		return "welcome \n" + "this site is deployed on " + LocalDateTime.now().toString() + "\n";
 	}
 
 }
