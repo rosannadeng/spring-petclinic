@@ -105,13 +105,13 @@ docker run --rm \
   --platform linux/amd64 \
   --network ${DOCKER_NETWORK} \
   --user 0 \
-  -v "${WORKSPACE}/zap-reports":/zap/wrk \
-  ghcr.io/zaproxy/zaproxy:stable \
+  -v "${WORKSPACE}/zap-reports":/zap/wrk:rw \
+  ghcr.io/zaproxy/zaproxy:weekly \
   zap-baseline.py \
       -t http://petclinic:8080 \
-      -r zap-report.html \
-      -w zap-report.md \
-      -x zap-report.xml \
+      -r /zap/wrk/zap-report.html \
+      -w /zap/wrk/zap-report.md \
+      -x /zap/wrk/zap-report.xml \
       -I || true
 
 echo "=== ZAP report directory ==="
