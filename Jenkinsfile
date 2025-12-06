@@ -6,7 +6,6 @@ pipeline {
     }
 
     environment {
-        SONAR_HOST = 'http://sonarqube:9000'
         DOCKER_NETWORK = 'spring-petclinic_devops-net'
     }
 
@@ -152,7 +151,7 @@ pipeline {
 
     post {
         always {
-            cleanWs()
+            sh 'docker exec maven-java25-builder rm -rf /build || true'
         }
         success {
             echo 'Pipeline completed successfully!'
