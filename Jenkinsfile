@@ -106,7 +106,7 @@ pipeline {
                         --network ${DOCKER_NETWORK} \
                         -w /zap/wrk \
                         -v "${ZAP_WORKDIR}":/zap/wrk \
-                        owasp/zap2docker-weekly \
+                        ghcr.io/zaproxy/zaproxy:weekly \
                         zap-baseline.py \
                         -t http://petclinic:8080 \
                         -r zap-report.html \
