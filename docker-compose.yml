@@ -82,7 +82,7 @@ services:
       - prometheus
 
   zap:
-    image: ghcr.io/zaproxy/zaproxy:nightly
+    image: owasp/zap2docker-weekly
     platform: linux/amd64
     container_name: zap
     volumes:

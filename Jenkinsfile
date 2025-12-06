@@ -100,18 +100,17 @@ pipeline {
                     mkdir -p "${WORKSPACE}/zap-reports" "${ZAP_WORKDIR}"
 
                     echo "Running ZAP baseline scan..."
-                    
+
                     docker run --rm \
                         --platform linux/amd64 \
                         --network ${DOCKER_NETWORK} \
                         -w /zap/wrk \
                         -v "${ZAP_WORKDIR}":/zap/wrk \
-                        ghcr.io/zaproxy/zaproxy:stable \
+                        owasp/zap2docker-weekly \
                         zap-baseline.py \
                         -t http://petclinic:8080 \
                         -r zap-report.html \
-                        -I \
-                        --allowzapshutdown
+                        -I --autooff
 
                     ZAP_EXIT_CODE=$?
 
@@ -120,8 +119,8 @@ pipeline {
                         cp "${ZAP_WORKDIR}/zap_out.json" "${WORKSPACE}/zap-reports/" 2>/dev/null || true
                         echo "ZAP report copied to workspace."
                     else
-                        echo "<html><body><h1>ZAP Scan Failed</h1><p>Exit code: $ZAP_EXIT_CODE</p></body></html>" > "${WORKSPACE}/zap-reports/zap-report.html"
-                        echo "ZAP report not found; created placeholder."
+                        echo "<html><body><h1>ZAP Scan Failed</h1><p>Exit code: $ZAP_EXIT_CODE</p></body></html>" \
+                            > "${WORKSPACE}/zap-reports/zap-report.html"
                     fi
 
                     echo "Files in ZAP workdir:"
@@ -141,6 +140,7 @@ pipeline {
                 }
             }
         }
+
 
     //    stage('Deploy to Production') {
     //         steps {
