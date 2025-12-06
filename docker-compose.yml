@@ -82,7 +82,7 @@ services:
       - prometheus
 
   zap:
-    image: ghcr.io/zaproxy/zaproxy:stable
+    image: ghcr.io/zaproxy/zaproxy:nightly
     platform: linux/amd64
     container_name: zap
     volumes:
