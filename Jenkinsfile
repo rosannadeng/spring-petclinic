@@ -93,41 +93,42 @@ pipeline {
         // }
 
         stage('OWASP ZAP Baseline Scan') {
-    steps {
-        sh '''
-            mkdir -p "${WORKSPACE}/zap-reports"
+            steps {
+                sh '''
+                    echo "=== Prepare report directory owned by ZAP user ==="
+                    mkdir -p "${WORKSPACE}/zap-reports"
+                    chown -R 1000:1000 "${WORKSPACE}/zap-reports"
 
-            echo "=== Running OWASP ZAP Baseline Scan ==="
+                    echo "=== Running OWASP ZAP Baseline Scan ==="
 
-            docker run --rm \
-              --platform linux/amd64 \
-              --network ${DOCKER_NETWORK} \
-              -v "${WORKSPACE}/zap-reports":/zap/wrk \
-              ghcr.io/zaproxy/zaproxy:stable \
-              zap-baseline.py \
-                 -t http://petclinic:8080 \
-                 -r zap-report.html \
-                 -I \
-                 --autooff || true
+                    docker run --rm \
+                    --platform linux/amd64 \
+                    --network ${DOCKER_NETWORK} \
+                    -v "${WORKSPACE}/zap-reports":/zap/wrk \
+                    ghcr.io/zaproxy/zaproxy:stable \
+                    zap-baseline.py \
+                        -t http://petclinic:8080 \
+                        -r zap-report.html \
+                        -I \
+                        --autooff || true
 
-            echo "=== ZAP report directory ==="
-            ls -la "${WORKSPACE}/zap-reports"
-        '''
-    }
-    post {
-        always {
-            publishHTML(target: [
-                allowMissing: true,
-                alwaysLinkToLastBuild: true,
-                keepAll: true,
-                reportDir: 'zap-reports',
-                reportFiles: 'zap-report.html',
-                reportName: 'OWASP ZAP Report'
-            ])
+                    echo "=== ZAP report directory ==="
+                    ls -la "${WORKSPACE}/zap-reports"
+                '''
+            }
+            post {
+                always {
+                    publishHTML(target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'zap-reports',
+                        reportFiles: 'zap-report.html',
+                        reportName: 'OWASP ZAP Report'
+                    ])
+                }
+            }
         }
-    }
-}
-
 
     //    stage('Deploy to Production') {
     //         steps {
