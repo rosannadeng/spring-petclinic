@@ -103,8 +103,6 @@ pipeline {
                     set +e
                     ZAP_WORKDIR="${WORKSPACE}/zap-wrk"
                     mkdir -p "${WORKSPACE}/zap-reports" "${ZAP_WORKDIR}"
-                    chmod -R 777 "${ZAP_WORKDIR}" "${WORKSPACE}/zap-reports" || true
-                    chown -R 1000:1000 "${ZAP_WORKDIR}" "${WORKSPACE}/zap-reports" 2>/dev/null || true
 
                     echo "Waiting for petclinic to be ready for scanning..."
                     for i in {1..30}; do
@@ -118,21 +116,24 @@ pipeline {
 
                     echo "Running ZAP baseline scan..."
                     rm -f "${ZAP_WORKDIR}/zap-report.html" "${ZAP_WORKDIR}/zap_out.json"
+
                     docker run --rm \
+                        --platform linux/amd64 \
                         --network ${DOCKER_NETWORK} \
-                        -u 0 \
                         -w /zap/wrk \
                         -v "${ZAP_WORKDIR}":/zap/wrk \
                         ghcr.io/zaproxy/zaproxy:stable \
                         zap-baseline.py \
                         -t http://petclinic:8080 \
                         -r zap-report.html \
-                        -I --autooff
+                        -I \
+                        --allowzapshutdown
+
                     ZAP_EXIT_CODE=$?
 
                     if [ -f "${ZAP_WORKDIR}/zap-report.html" ]; then
                         cp "${ZAP_WORKDIR}/zap-report.html" "${WORKSPACE}/zap-reports/"
-                        [ -f "${ZAP_WORKDIR}/zap_out.json" ] && cp "${ZAP_WORKDIR}/zap_out.json" "${WORKSPACE}/zap-reports/" || true
+                        cp "${ZAP_WORKDIR}/zap_out.json" "${WORKSPACE}/zap-reports/" 2>/dev/null || true
                         echo "ZAP report copied to workspace."
                     else
                         echo "<html><body><h1>ZAP Scan Failed</h1><p>Exit code: $ZAP_EXIT_CODE</p></body></html>" > "${WORKSPACE}/zap-reports/zap-report.html"
