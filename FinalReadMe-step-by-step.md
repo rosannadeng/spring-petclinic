@@ -23,6 +23,12 @@ Virtual machine OS : ubuntu-24.04.3-live-server-amd64
 
 > The VM is so you do not configure this project on your host machine (e.g. Windows 11, MacOS 26 Tahoe, Lindux Fedora.) In a Real CI/CD pipeline you need to have production separation so when things break or crash you do not destroy your entire machine. Also for security OWASP Zap scans and Ansible on your host OS is not recommended. 
 
+
+## autoScript
+
+See [`automation-scripts/demo.sh`](automation-scripts/demo.sh)
+
+
 ## vm-server-installation
 
 #### Get a download of the Ubuntu Server 
