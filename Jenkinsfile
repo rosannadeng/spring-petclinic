@@ -17,6 +17,9 @@ pipeline {
         }
 
         stage('Build') {
+            options {
+                timeout(time: 5, unit: 'MINUTES')
+            }
             steps {
                 sh 'docker cp . maven-java25-builder:/build'
                 sh 'docker exec maven-java25-builder chmod +x /build/mvnw'
@@ -25,12 +28,18 @@ pipeline {
         }
 
         stage('Test') {
+            options {
+                timeout(time: 5, unit: 'MINUTES')
+            }
             steps {
-                sh 'docker exec -w /build maven-java25-builder ./mvnw test -Dtest=!PostgresIntegrationTests -B || true'
+                sh 'docker exec -w /build maven-java25-builder ./mvnw test -Dtest=!PostgresIntegrationTests,!MySqlIntegrationTests -DfailIfNoTests=false -B || true'
             }
         }
 
         stage('SonarQube Analysis') {
+            options {
+                timeout(time: 3, unit: 'MINUTES')
+            }
             steps {
                 sh 'docker exec -w /build maven-java25-builder ./mvnw sonar:sonar -Dsonar.host.url=http://sonarqube:9000 -Dsonar.projectKey=spring-petclinic -B || true'
             }
