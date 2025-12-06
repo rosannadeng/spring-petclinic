@@ -24,7 +24,7 @@ echo "[4/8] Building Docker image..."
 docker build -t petclinic:latest . >/dev/null 2>&1
 
 echo "[5/8] Starting all services..."
-docker compose up -d
+docker compose up -d --force-recreate
 echo "Waiting 25 seconds..."
 sleep 25
 
