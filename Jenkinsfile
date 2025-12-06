@@ -121,6 +121,7 @@ pipeline {
                     docker run --rm \
                         --network ${DOCKER_NETWORK} \
                         -u 0 \
+                        -w /zap/wrk \
                         -v "${ZAP_WORKDIR}":/zap/wrk \
                         ghcr.io/zaproxy/zaproxy:stable \
                         zap-baseline.py \
