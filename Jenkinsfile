@@ -105,10 +105,9 @@ pipeline {
                       --platform linux/amd64 \
                       --network ${DOCKER_NETWORK} \
                       -v "${WORKSPACE}/zap-reports":/zap/wrk:rw \
-                      -u zap \
-                      -e ZAP_DISABLE_AUTO=true \
+                      --user root \
                       ghcr.io/zaproxy/zaproxy:stable \
-                      bash -c "cd /zap/wrk && zap-baseline.py -t http://petclinic:8080 -r ./zap-report.html -w ./zap-report.md -x ./zap-report.xml -I || true"
+                      bash -c "chmod -R 777 /zap/wrk && su -c 'cd /zap/wrk && zap-baseline.py -t http://petclinic:8080 -r zap-report.html -w zap-report.md -x zap-report.xml -I' zap || true"
 
                     echo ""
                     echo "=== ZAP report directory ==="
@@ -116,7 +115,7 @@ pipeline {
                     
                     echo ""
                     echo "=== Report status ==="
-                    for file in zap-report.html zap-report.md zap-report.xml; do
+                    for file in zap-report.html zap-report.md zap-report.xml zap.yaml; do
                         if [ -f "${WORKSPACE}/zap-reports/$file" ]; then
                             size=$(stat -c%s "${WORKSPACE}/zap-reports/$file" 2>/dev/null || stat -f%z "${WORKSPACE}/zap-reports/$file" 2>/dev/null)
                             echo "✓ $file ($size bytes)"
