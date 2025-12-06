@@ -101,10 +101,11 @@ pipeline {
 
                     echo "=== Running OWASP ZAP Baseline Scan ==="
                     
-                    # Run ZAP in a named container to copy files later
+                    # Run ZAP in a named container (create temp volume for /zap/wrk)
                     docker run --name zap-scan-${BUILD_NUMBER} \
                       --platform linux/amd64 \
                       --network ${DOCKER_NETWORK} \
+                      -v zap-reports-${BUILD_NUMBER}:/zap/wrk \
                       ghcr.io/zaproxy/zaproxy:stable \
                       zap-baseline.py \
                         -t http://petclinic:8080 \
@@ -121,8 +122,9 @@ pipeline {
                     docker cp zap-scan-${BUILD_NUMBER}:/zap/wrk/zap.yaml "${WORKSPACE}/zap-reports/" 2>/dev/null || echo "YAML config not found"
                     
                     echo ""
-                    echo "=== Cleanup container ==="
+                    echo "=== Cleanup container and volume ==="
                     docker rm -f zap-scan-${BUILD_NUMBER} 2>/dev/null || true
+                    docker volume rm zap-reports-${BUILD_NUMBER} 2>/dev/null || true
 
                     echo ""
                     echo "=== ZAP report directory ==="
