@@ -106,16 +106,15 @@ pipeline {
                     docker run --rm \
                     --platform linux/amd64 \
                     --network ${DOCKER_NETWORK} \
-                    --user root \
                     -v "${WORKSPACE}/zap-reports":/zap/wrk \
-                    ghcr.io/zaproxy/zaproxy:stable \
+                    owasp/zap2docker-stable \
                     zap-baseline.py \
                         -t http://petclinic:8080 \
                         -r zap-report.html \
                         -w zap-report.md \
                         -x zap-report.xml \
-                        -o /zap/wrk \
-                        -I --autooff || true
+                        -I
+
 
 
 
