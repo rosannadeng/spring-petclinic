@@ -106,14 +106,15 @@ pipeline {
                     docker run --rm \
                     --platform linux/amd64 \
                     --network ${DOCKER_NETWORK} \
+                    --user root \
                     -v "${WORKSPACE}/zap-reports":/zap/wrk \
-                    ghcr.io/zaproxy/zaproxy:stable \
+                    ghcr.io/zaproxy/zaproxy:weekly \
                     zap-baseline.py \
                         -t http://petclinic:8080 \
                         -r zap-report.html \
                         -I \
                         --autooff || true
-
+                        
                     echo "=== ZAP report directory ==="
                     ls -la "${WORKSPACE}/zap-reports"
                 '''
