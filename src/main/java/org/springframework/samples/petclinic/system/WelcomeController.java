@@ -25,7 +25,8 @@ class WelcomeController {
 
 	@GetMapping("/")
 	public String welcome() {
-		return "welcome \n this site is deployed on " + java.time.LocalDateTime.now().toString();
+		return "welcome \n" +
+		"this site is deployed on " + java.time.LocalDateTime.now().toString() + "\n";
 	}
 
 }
