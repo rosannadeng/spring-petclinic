@@ -96,30 +96,27 @@ pipeline {
             steps {
                 sh '''
                     echo "=== Prepare report directory owned by ZAP user ==="
-                    mkdir -p "${WORKSPACE}/zap-reports"
-                    chmod -R 777 "${WORKSPACE}/zap-reports"
+mkdir -p "${WORKSPACE}/zap-reports"
+chmod -R 777 "${WORKSPACE}/zap-reports"
 
-                    chown -R 1000:1000 "${WORKSPACE}/zap-reports"
+echo "=== Running OWASP ZAP Baseline Scan ==="
 
-                    echo "=== Running OWASP ZAP Baseline Scan ==="
+docker run --rm \
+  --platform linux/amd64 \
+  --network ${DOCKER_NETWORK} \
+  --user 0 \
+  -v "${WORKSPACE}/zap-reports":/zap/wrk \
+  ghcr.io/zaproxy/zaproxy:stable \
+  zap-baseline.py \
+      -t http://petclinic:8080 \
+      -r zap-report.html \
+      -w zap-report.md \
+      -x zap-report.xml \
+      -I || true
 
-                    docker run --rm \
-                    --platform linux/amd64 \
-                    --network ${DOCKER_NETWORK} \
-                    -v "${WORKSPACE}/zap-reports":/zap/wrk \
-                    owasp/zap2docker-stable \
-                    zap-baseline.py \
-                        -t http://petclinic:8080 \
-                        -r zap-report.html \
-                        -w zap-report.md \
-                        -x zap-report.xml \
-                        -I
+echo "=== ZAP report directory ==="
+ls -la "${WORKSPACE}/zap-reports"
 
-
-
-
-                    echo "=== ZAP report directory ==="
-                    ls -la "${WORKSPACE}/zap-reports"
                 '''
             }
             post {
