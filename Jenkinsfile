@@ -101,26 +101,31 @@ pipeline {
 
                     echo "=== Running OWASP ZAP Baseline Scan ==="
                     
-                    docker run --rm \
+                    # Run ZAP in a named container to copy files later
+                    docker run --name zap-scan-${BUILD_NUMBER} \
                       --platform linux/amd64 \
                       --network ${DOCKER_NETWORK} \
-                      -v "${WORKSPACE}/zap-reports":/reports:rw \
-                      --user root \
                       ghcr.io/zaproxy/zaproxy:stable \
-                      bash -c "
-                        chmod -R 777 /reports
-                        cd /reports
-                        pwd
-                        ls -la
-                        
-                        su -c 'cd /reports && zap-baseline.py -t http://petclinic:8080 -r zap-report.html -w zap-report.md -x zap-report.xml -I' zap || true
-                        
-                        echo '=== Files created in /reports ==='
-                        ls -lah /reports/
-                      "
+                      zap-baseline.py \
+                        -t http://petclinic:8080 \
+                        -r zap-report.html \
+                        -w zap-report.md \
+                        -x zap-report.xml \
+                        -I || true
+                    
+                    echo ""
+                    echo "=== Copying reports from container ==="
+                    docker cp zap-scan-${BUILD_NUMBER}:/zap/wrk/zap-report.html "${WORKSPACE}/zap-reports/" 2>/dev/null || echo "HTML report not found"
+                    docker cp zap-scan-${BUILD_NUMBER}:/zap/wrk/zap-report.md "${WORKSPACE}/zap-reports/" 2>/dev/null || echo "MD report not found"
+                    docker cp zap-scan-${BUILD_NUMBER}:/zap/wrk/zap-report.xml "${WORKSPACE}/zap-reports/" 2>/dev/null || echo "XML report not found"
+                    docker cp zap-scan-${BUILD_NUMBER}:/zap/wrk/zap.yaml "${WORKSPACE}/zap-reports/" 2>/dev/null || echo "YAML config not found"
+                    
+                    echo ""
+                    echo "=== Cleanup container ==="
+                    docker rm -f zap-scan-${BUILD_NUMBER} 2>/dev/null || true
 
                     echo ""
-                    echo "=== ZAP report directory (Jenkins side) ==="
+                    echo "=== ZAP report directory ==="
                     ls -lah "${WORKSPACE}/zap-reports/"
                     
                     echo ""
