@@ -43,7 +43,7 @@ https://ubuntu.com/download/server
 
 > "virtual Machine name" -> name it whatever you like. make sure your location of the machine is in the correct spot (its wherever on your system your vm files are stores or create a new file in your users folder for your user)
 
-![LocationofVMmachine](image-2.png)
+![LocationofVMmachine](SCREENSHOTS/ReadMeScreenshots/image-2.png)
 
 > Store as a single virtual disk file. Your Server should have at least 60 GB as your server will start at 8-12 GB as ready. If you can not afford to give that muc or simply do not want to. Use 35-40gb and when running this lab ensure you are running the commands found in (CleanUpTime)
 
@@ -81,11 +81,11 @@ Leave this be. DO NOT ENCRYPT FOR THIS PROJECT. Although encrypting is a good id
 ![storageconfiguration(image-3.png)
 
 >Next! Upgrade to Ubuntu Pro (Do not need. hit continue) 
-![noubuntupro](image-4.png)
+![noubuntupro](SCREENSHOTS/ReadMeScreenshots/image-4.png)
 
 >NEXT! SSH Configuration  
 Enable "install OpenSSH Server" BUT DO NOT import at this stage. You will do this later. 
-![alt text](image-5.png)
+![alt text](SCREENSHOTS/ReadMeScreenshots/image-5.png)
 
 >Feature server snaps (leave be. hit done)  
 ![alt text](image-6.png)
@@ -93,12 +93,12 @@ Enable "install OpenSSH Server" BUT DO NOT import at this stage. You will do thi
 >*Done! let it run and do its thing.* Dont freak out if it says failed to mount after selecting reboot. just press enter. 
 
 >It should look like: 
-![alt text](image-7.png)
+![alt text](SCREENSHOTS/ReadMeScreenshots/image-7.png)
 
 ***Take a snapshot here.***
 
 >Click this clock plus button 
-![alt text](image-8.png)
+![alt text](SCREENSHOTS/ReadMeScreenshots/image-8.png)
 
 ## Connecting my Virtual Machine to your host machine
 ##### When you are configuring jenkins, zap, etc. It is is easier to copy paste our commands from our github or running scripts frpm your host terminal than just typing it out on the production server. Plus the interface is 1000% better. 
@@ -106,13 +106,13 @@ Enable "install OpenSSH Server" BUT DO NOT import at this stage. You will do thi
 > Login to the server with your username and password you created in the step above for this server. 
  and the ip a -> this allow you to see the ip information for this server 
 
-![alt text](image-10.png) *The ip for your server is at the inet part without the /24* 
+![alt text](SCREENSHOTS/ReadMeScreenshots/image-10.png) *The ip for your server is at the inet part without the /24* 
 
 > check if ssh is enable by running the command in your ubuntu server
 
 ```sudo systemctl status ssh``` *For sudo (super user give admin privlages) type your password for the server. thi will happen multiple times* 
 
-![alt text](image-11.png)
+![alt text](SCREENSHOTS/ReadMeScreenshots/image-11.png)
 
 > enable if not
 ```sudo systemctl enable ssh --now```
@@ -141,7 +141,7 @@ Enable "install OpenSSH Server" BUT DO NOT import at this stage. You will do thi
 ## Fork the project repository on GitHub/GitLab and clone it to your local machine.
 Things should be straight forward from here getting the project to come up. 
 
-![alt text](image-12.png)
+![alt text](SCREENSHOTS/ReadMeScreenshots/image-12.png)
 
 This is where you now run your commands unless stated otherwise. 
 
@@ -153,7 +153,7 @@ This is where you now run your commands unless stated otherwise.
 
 To create a fork you would go into the repo and create a fork by clicking on the fork button. 
 
-![alt text](image-31.png)
+![alt text](SCREENSHOTS/ReadMeScreenshots/image-31.png)
 
 Getting the clone. go to the green <> code button in our workspace github.com/rosannadeng/spring-petclinic and then grab the link in https
 
