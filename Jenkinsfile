@@ -95,14 +95,8 @@ pipeline {
         stage('OWASP ZAP Baseline Scan') {
             steps {
                 sh '''
-                    echo "=== Prepare report directory ==="
                     mkdir -p "${WORKSPACE}/zap-reports"
-                    chmod -R 777 "${WORKSPACE}/zap-reports"
-
-                    echo "=== Running OWASP ZAP Baseline Scan ==="
-                    
-                    # Run ZAP in a named container (create temp volume for /zap/wrk)
-                    # Use --user root to avoid permission issues with Docker volumes
+                    # Run ZAP scan in container with temporary volume
                     docker run --name zap-scan-${BUILD_NUMBER} \
                       --platform linux/amd64 \
                       --network ${DOCKER_NETWORK} \
@@ -111,32 +105,14 @@ pipeline {
                       ghcr.io/zaproxy/zaproxy:stable \
                       bash -c "chown -R zap:zap /zap/wrk && su zap -c 'zap-baseline.py -t http://petclinic:8080 -r zap-report.html -w zap-report.md -x zap-report.xml -I'" || true
                     
-                    echo ""
-                    echo "=== Copying reports from container ==="
-                    docker cp zap-scan-${BUILD_NUMBER}:/zap/wrk/zap-report.html "${WORKSPACE}/zap-reports/" 2>/dev/null || echo "HTML report not found"
-                    docker cp zap-scan-${BUILD_NUMBER}:/zap/wrk/zap-report.md "${WORKSPACE}/zap-reports/" 2>/dev/null || echo "MD report not found"
-                    docker cp zap-scan-${BUILD_NUMBER}:/zap/wrk/zap-report.xml "${WORKSPACE}/zap-reports/" 2>/dev/null || echo "XML report not found"
-                    docker cp zap-scan-${BUILD_NUMBER}:/zap/wrk/zap.yaml "${WORKSPACE}/zap-reports/" 2>/dev/null || echo "YAML config not found"
+                    # Copy reports from container to Jenkins workspace
+                    docker cp zap-scan-${BUILD_NUMBER}:/zap/wrk/zap-report.html "${WORKSPACE}/zap-reports/" 2>/dev/null || true
+                    docker cp zap-scan-${BUILD_NUMBER}:/zap/wrk/zap-report.md "${WORKSPACE}/zap-reports/" 2>/dev/null || true
+                    docker cp zap-scan-${BUILD_NUMBER}:/zap/wrk/zap-report.xml "${WORKSPACE}/zap-reports/" 2>/dev/null || true
                     
-                    echo ""
-                    echo "=== Cleanup container and volume ==="
+                    # Cleanup
                     docker rm -f zap-scan-${BUILD_NUMBER} 2>/dev/null || true
                     docker volume rm zap-reports-${BUILD_NUMBER} 2>/dev/null || true
-
-                    echo ""
-                    echo "=== ZAP report directory ==="
-                    ls -lah "${WORKSPACE}/zap-reports/"
-                    
-                    echo ""
-                    echo "=== Report status ==="
-                    for file in zap-report.html zap-report.md zap-report.xml zap.yaml; do
-                        if [ -f "${WORKSPACE}/zap-reports/$file" ]; then
-                            size=$(stat -c%s "${WORKSPACE}/zap-reports/$file" 2>/dev/null || stat -f%z "${WORKSPACE}/zap-reports/$file" 2>/dev/null)
-                            echo "✓ $file ($size bytes)"
-                        else
-                            echo "✗ $file NOT found"
-                        fi
-                    done
                 '''
             }
             post {
