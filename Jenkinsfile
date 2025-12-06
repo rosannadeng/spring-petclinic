@@ -97,6 +97,8 @@ pipeline {
                 sh '''
                     echo "=== Prepare report directory owned by ZAP user ==="
                     mkdir -p "${WORKSPACE}/zap-reports"
+                    chmod -R 777 "${WORKSPACE}/zap-reports"
+
                     chown -R 1000:1000 "${WORKSPACE}/zap-reports"
 
                     echo "=== Running OWASP ZAP Baseline Scan ==="
