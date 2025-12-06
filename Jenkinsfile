@@ -108,13 +108,15 @@ pipeline {
                     --network ${DOCKER_NETWORK} \
                     --user root \
                     -v "${WORKSPACE}/zap-reports":/zap/wrk \
-                    ghcr.io/zaproxy/zaproxy:weekly \
+                    ghcr.io/zaproxy/zaproxy:stable \
                     zap-baseline.py \
                         -t http://petclinic:8080 \
                         -r zap-report.html \
                         -w zap-report.md \
                         -x zap-report.xml \
+                        -o /zap/wrk \
                         -I --autooff || true
+
 
 
                     echo "=== ZAP report directory ==="
