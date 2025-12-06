@@ -100,6 +100,7 @@ pipeline {
                     mkdir -p "${WORKSPACE}/zap-reports" "${ZAP_WORKDIR}"
 
                     echo "Running ZAP baseline scan..."
+                    chown -R 1000:1000 "${ZAP_WORKDIR}"
 
                     docker run --rm \
                         --platform linux/amd64 \
