@@ -95,33 +95,29 @@ pipeline {
         stage('OWASP ZAP Scan') {
             steps {
                 sh '''
-                    set +e
-                    ZAP_WORKDIR="${WORKSPACE}/zap-wrk"
-                    mkdir -p "${WORKSPACE}/zap-reports" "${ZAP_WORKDIR}"
+                    # 创建目录
+                    mkdir -p "${WORKSPACE}/zap-wrk"
+                    mkdir -p "${WORKSPACE}/zap-reports"
 
-                    echo "Running ZAP baseline scan..."
-                    chown -R 1000:1000 "${ZAP_WORKDIR}"
+                    # 将你的 zap.yaml 放到 zap-wrk 中
+                    cp "${WORKSPACE}/zap/zap.yaml" "${WORKSPACE}/zap-wrk/zap.yaml"
 
+                    echo ">>> Jenkins workspace:"
+                    ls -la "${WORKSPACE}/zap-wrk"
+
+                    # 赋予 ZAP 运行权限
+                    chown -R 1000:1000 "${WORKSPACE}/zap-wrk"
+
+                    # 正确运行 docker run（关键：使用 Jenkins 容器路径）
                     docker run --rm \
                     --platform linux/amd64 \
-                    --network spring-petclinic_devops-net \
+                    --network ${DOCKER_NETWORK} \
                     -v "${WORKSPACE}/zap-wrk":/zap/wrk \
                     ghcr.io/zaproxy/zaproxy:weekly \
                     zap.sh -cmd -autorun /zap/wrk/zap.yaml
 
-                    ZAP_EXIT_CODE=$?
-
-                    if [ -f "${ZAP_WORKDIR}/zap-report.html" ]; then
-                        cp "${ZAP_WORKDIR}/zap-report.html" "${WORKSPACE}/zap-reports/"
-                        cp "${ZAP_WORKDIR}/zap_out.json" "${WORKSPACE}/zap-reports/" 2>/dev/null || true
-                        echo "ZAP report copied to workspace."
-                    else
-                        echo "<html><body><h1>ZAP Scan Failed</h1><p>Exit code: $ZAP_EXIT_CODE</p></body></html>" \
-                            > "${WORKSPACE}/zap-reports/zap-report.html"
-                    fi
-
-                    echo "Files in ZAP workdir:"
-                    ls -la "${ZAP_WORKDIR}" || true
+                    echo ">>> ZAP workdir content after scan:"
+                    ls -la "${WORKSPACE}/zap-wrk"
                 '''
             }
             post {
@@ -130,13 +126,14 @@ pipeline {
                         allowMissing: true,
                         alwaysLinkToLastBuild: true,
                         keepAll: true,
-                        reportDir: 'zap-reports',
+                        reportDir: 'zap-wrk',
                         reportFiles: 'zap-report.html',
                         reportName: 'OWASP ZAP Report'
                     ])
                 }
             }
         }
+
 
 
     //    stage('Deploy to Production') {
