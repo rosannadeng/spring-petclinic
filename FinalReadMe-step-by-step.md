@@ -967,5 +967,5 @@ Take screenshots showing:
 
 Advanced automated scripting (i.e., fully automated assignment completion) will receive a bonus in the automation scripts
 
-
+PLease look in our automation-script folder for the deploy.sh file 
 
