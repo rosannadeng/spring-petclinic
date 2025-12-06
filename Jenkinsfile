@@ -112,9 +112,11 @@ pipeline {
                     zap-baseline.py \
                         -t http://petclinic:8080 \
                         -r zap-report.html \
-                        -I \
-                        --autooff || true
-                        
+                        -w zap-report.md \
+                        -x zap-report.xml \
+                        -I --autooff || true
+
+
                     echo "=== ZAP report directory ==="
                     ls -la "${WORKSPACE}/zap-reports"
                 '''
